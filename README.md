@@ -17,13 +17,20 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   manuel requis) via `Player.Listener#onMediaMetadataChanged`.
 - Pochette de l'album récupérée en temps réel via l'**iTunes Search API**
   (gratuite, sans clé) à partir de l'artiste/titre détecté (`CoverArtFetcher`).
-- La pochette trouvée est aussi injectée dans les métadonnées du `MediaItem`
-  en cours (`LiveFragment#updateNotificationArtwork`, via
-  `Player#replaceMediaItem` qui met à jour les métadonnées sans interrompre
-  la lecture), afin que la **notification système** de lecture affiche la
-  même pochette que l'app, en plus du titre/artiste. Le `PlaybackService`
-  utilise un `DataSourceBitmapLoader` pour que la session sache charger cette
-  image depuis une URL réseau.
+- La pochette trouvée est relayée à `PlaybackService` via une **commande de
+  session personnalisée** (`PlaybackService.COMMAND_SET_ARTWORK`, envoyée par
+  `LiveFragment#updateNotificationArtwork` avec `MediaController#sendCustomCommand`),
+  qui applique `Player#replaceMediaItem` **directement sur l'instance ExoPlayer
+  côté service** afin que la **notification système** affiche la même pochette
+  que l'app, en plus du titre/artiste ICY. Le `PlaybackService` utilise un
+  `DataSourceBitmapLoader` pour que la session sache charger cette image depuis
+  une URL réseau.
+  > ⚠️ Important : cette mise à jour doit être effectuée sur le `Player` lui-même
+  > et non via un `MediaController` (ex. directement depuis le Fragment) : c'est
+  > un bug connu de Media3 (voir [androidx/media#706](https://github.com/androidx/media/issues/706))
+  > où `replaceMediaItem()` appelé depuis un contrôleur ne remonte plus les
+  > changements de métadonnées ensuite - c'était la cause du gel de l'affichage
+  > (titre + pochette figés) après la première mise à jour de la pochette.
 - Nombre d'auditeurs en direct, interrogé toutes les 15s sur l'endpoint
   standard Icecast `status-json.xsl` (`IcecastStatusFetcher`). Si l'endpoint
   n'est pas exposé publiquement par le serveur, l'UI affiche simplement

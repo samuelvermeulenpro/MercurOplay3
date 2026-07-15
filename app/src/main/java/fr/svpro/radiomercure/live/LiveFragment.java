@@ -1,6 +1,5 @@
 package fr.svpro.radiomercure.live;
 
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +19,7 @@ import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionCommand;
 import androidx.media3.session.SessionToken;
 
 import com.bumptech.glide.Glide;
@@ -212,23 +212,19 @@ public class LiveFragment extends Fragment {
     }
 
     /**
-     * Attaches the artwork URI to the current MediaItem's metadata so that the
-     * background-playback notification (built by Media3's
-     * DefaultMediaNotificationProvider from the session's media metadata) shows
-     * the same cover as the in-app player, alongside the ICY track title.
+     * Relays the artwork URL to {@link PlaybackService} via a custom session command so the
+     * update happens directly on the player (see PlaybackService for why: calling
+     * replaceMediaItem from a MediaController rather than the player itself is a known
+     * source of stuck ICY metadata).
      */
     private void updateNotificationArtwork(@Nullable String artworkUrl) {
         if (mediaController == null) return;
-        MediaItem currentItem = mediaController.getCurrentMediaItem();
-        if (currentItem == null) return;
-
-        MediaMetadata updatedMetadata = mediaController.getMediaMetadata().buildUpon()
-                .setArtworkUri(artworkUrl != null ? Uri.parse(artworkUrl) : null)
-                .build();
-        MediaItem updatedItem = currentItem.buildUpon()
-                .setMediaMetadata(updatedMetadata)
-                .build();
-        mediaController.replaceMediaItem(mediaController.getCurrentMediaItemIndex(), updatedItem);
+        Bundle args = new Bundle();
+        if (artworkUrl != null) {
+            args.putString(PlaybackService.EXTRA_ARTWORK_URL, artworkUrl);
+        }
+        mediaController.sendCustomCommand(
+                new SessionCommand(PlaybackService.COMMAND_SET_ARTWORK, Bundle.EMPTY), args);
     }
 
     private void togglePlayback() {
