@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand palette sampled from the MercurOplay logo -->
+    <color name="brand_blue">#0E3D99</color>
+    <color name="brand_blue_dark">#0A2E75</color>
+    <color name="brand_blue_light">#4D8CE8</color>
+    <color name="brand_orange">#FF4000</color>
+    <color name="brand_orange_dark">#D63600</color>
+    <color name="brand_white">#FFFFFF</color>
+
+    <color name="background_light">#F5F7FB</color>
+    <color name="surface_white">#FFFFFF</color>
+    <color name="text_primary">#12203D</color>
+    <color name="text_secondary">#5B6B85</color>
+    <color name="divider">#E1E6EF</color>
+    <color name="live_red">#E8332B</color>
+
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

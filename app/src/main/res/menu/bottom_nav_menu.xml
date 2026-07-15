@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/liveFragment"
+        android:icon="@drawable/ic_live"
+        android:title="@string/nav_live" />
+    <item
+        android:id="@+id/podcastFragment"
+        android:icon="@drawable/ic_podcast"
+        android:title="@string/nav_podcast" />
+</menu>

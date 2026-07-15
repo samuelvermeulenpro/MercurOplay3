@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MercurOplay by Radio Mercure</string>
+
+    <string name="nav_live">Direct</string>
+    <string name="nav_podcast">Podcasts</string>
+
+    <string name="live_on_air">EN DIRECT</string>
+    <string name="live_loading">Connexion au direct…</string>
+    <string name="live_listeners_format">%d auditeurs</string>
+    <string name="live_listeners_unknown">-- auditeurs</string>
+    <string name="live_no_track">Radio Mercure</string>
+    <string name="live_play">Lecture</string>
+    <string name="live_pause">Pause</string>
+    <string name="live_error">Impossible de se connecter au direct. Vérifiez votre connexion.</string>
+    <string name="live_retry">Réessayer</string>
+
+    <string name="podcast_title">Podcasts &amp; Vidéos</string>
+    <string name="podcast_loading">Chargement des épisodes…</string>
+    <string name="podcast_empty">Aucun épisode disponible pour le moment.</string>
+    <string name="podcast_error">Impossible de charger les podcasts.</string>
+    <string name="podcast_video_badge">VIDÉO</string>
+    <string name="podcast_audio_badge">AUDIO</string>
+
+    <string name="download_started">Téléchargement démarré</string>
+    <string name="download_failed">Téléchargement impossible</string>
+    <string name="download_permission_needed">Autorisation de stockage requise pour télécharger</string>
+    <string name="share_chooser_title">Partager l\'épisode</string>
+    <string name="share_text_format">%1$s\n%2$s</string>
+    <string name="cd_download">Télécharger l\'épisode</string>
+    <string name="cd_share">Partager l\'épisode</string>
+
+    <string name="player_close">Fermer</string>
+    <string name="player_play_pause">Lecture / Pause</string>
+
+    <string name="cd_cover_art">Pochette de la station</string>
+    <string name="cd_app_logo">Logo MercurOplay</string>
+    <string name="cd_episode_thumb">Vignette de l\'épisode</string>
+</resources>
