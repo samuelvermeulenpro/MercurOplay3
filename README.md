@@ -11,6 +11,17 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
 ## Fonctionnalités
 
 ### Onglet "Direct" (`live/`)
+- **Démarrage neutre** : à l'ouverture de l'onglet, rien n'est lancé -
+  `ic_placeholder_cover` est affiché, le titre reste sur "Radio Mercure", et
+  ni le `PlaybackService` ni `CoverArtFetcher`/le flux ICY ne sont sollicités.
+  Le service, la préparation du flux et toute la synchronisation
+  cover/artiste/titre ne démarrent qu'au premier appui sur le bouton lecture
+  (`LiveFragment#connectAndPlay`, appelé depuis `togglePlayback`).
+  > Limite connue : si on quitte l'onglet Direct pendant la lecture (ex. pour
+  > aller sur Podcasts) puis qu'on y revient, le Fragment est recréé et
+  > raffiche l'état neutre tant qu'on n'a pas retouché le bouton lecture,
+  > même si le flux continue réellement en arrière-plan (notification à
+  > jour). Un nouvel appui reconnecte immédiatement et resynchronise tout.
 - Lecture du flux Icecast en direct : `https://oplay-stream.radiomercure.net`
 - Métadonnées du morceau en cours (ICY `StreamTitle`) affichées en temps réel,
   lues automatiquement par Media3 ExoPlayer (support ICY natif, aucun parsing

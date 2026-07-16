@@ -46,6 +46,7 @@ public class LiveFragment extends Fragment {
 
     private MediaController mediaController;
     private ListenableFuture<MediaController> controllerFuture;
+    private boolean connecting = false;
 
     private OkHttpClient httpClient;
     private CoverArtFetcher coverArtFetcher;
@@ -77,6 +78,15 @@ public class LiveFragment extends Fragment {
         coverArtFetcher = new CoverArtFetcher(httpClient);
         statusFetcher = new IcecastStatusFetcher(httpClient);
 
+        // Neutral resting state: no service bound yet, no metadata fetched yet. Everything
+        // below only starts once the user actually presses play (see togglePlayback()).
+        showPlaceholderNowPlaying();
+        buttonPlayPause.setImageResource(R.drawable.ic_play);
+        buttonPlayPause.setContentDescription(getString(R.string.live_play));
+        progressBuffering.setVisibility(View.GONE);
+        textError.setVisibility(View.GONE);
+        buttonRetry.setVisibility(View.GONE);
+
         buttonPlayPause.setOnClickListener(v -> togglePlayback());
         buttonRetry.setOnClickListener(v -> {
             textError.setVisibility(View.GONE);
@@ -84,22 +94,58 @@ public class LiveFragment extends Fragment {
             if (mediaController != null) {
                 mediaController.prepare();
                 mediaController.play();
+            } else if (!connecting) {
+                connectAndPlay();
             }
         });
-
-        connectToPlaybackService();
     }
 
-    private void connectToPlaybackService() {
+    /**
+     * Resets the "now playing" area to its neutral state (placeholder cover, default
+     * station name, no artist) without touching the player/service - used before any
+     * playback has been requested, and if artwork lookup comes back empty.
+     */
+    private void showPlaceholderNowPlaying() {
+        imageCover.setImageResource(R.drawable.ic_placeholder_cover);
+        textTrackTitle.setText(R.string.live_no_track);
+        textTrackArtist.setText("");
+    }
+
+    private void togglePlayback() {
+        if (mediaController == null) {
+            // First tap: this is the moment the service gets launched and metadata/cover
+            // sync begins - nothing happens before this on screen open.
+            if (!connecting) {
+                connectAndPlay();
+            }
+            return;
+        }
+        if (mediaController.isPlaying()) {
+            mediaController.pause();
+        } else {
+            if (mediaController.getPlaybackState() == Player.STATE_IDLE) {
+                prepareLiveStreamIfNeeded();
+            }
+            mediaController.play();
+        }
+    }
+
+    private void connectAndPlay() {
+        connecting = true;
+        progressBuffering.setVisibility(View.VISIBLE);
+        buttonPlayPause.setVisibility(View.INVISIBLE);
+
         SessionToken sessionToken = new SessionToken(
                 requireContext(),
                 new android.content.ComponentName(requireContext(), PlaybackService.class));
         controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
+            connecting = false;
             try {
                 mediaController = controllerFuture.get();
                 setupPlayerListener();
                 prepareLiveStreamIfNeeded();
+                mediaController.play();
             } catch (Exception e) {
                 showError();
             }
@@ -156,8 +202,6 @@ public class LiveFragment extends Fragment {
             }
         });
 
-        // Apply metadata already present (e.g. if playback started before this listener attached)
-        applyNowPlaying(mediaController.getMediaMetadata());
         updatePlayPauseIcon();
     }
 
@@ -173,8 +217,7 @@ public class LiveFragment extends Fragment {
         }
 
         if (title == null || title.trim().isEmpty()) {
-            textTrackTitle.setText(R.string.live_no_track);
-            textTrackArtist.setText("");
+            showPlaceholderNowPlaying();
             return;
         }
 
@@ -227,18 +270,6 @@ public class LiveFragment extends Fragment {
                 new SessionCommand(PlaybackService.COMMAND_SET_ARTWORK, Bundle.EMPTY), args);
     }
 
-    private void togglePlayback() {
-        if (mediaController == null) return;
-        if (mediaController.isPlaying()) {
-            mediaController.pause();
-        } else {
-            if (mediaController.getPlaybackState() == Player.STATE_IDLE) {
-                mediaController.prepare();
-            }
-            mediaController.play();
-        }
-    }
-
     private void updatePlayPauseIcon() {
         if (mediaController == null) return;
         boolean playing = mediaController.isPlaying();
@@ -286,5 +317,6 @@ public class LiveFragment extends Fragment {
             MediaController.releaseFuture(controllerFuture);
         }
         mediaController = null;
+        connecting = false;
     }
 }
