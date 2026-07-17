@@ -37,6 +37,11 @@
             android:launchMode="singleTop" />
 
         <activity
+            android:name=".AboutActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".podcast.PodcastPlayerActivity"
             android:exported="false"
             android:launchMode="singleTop"

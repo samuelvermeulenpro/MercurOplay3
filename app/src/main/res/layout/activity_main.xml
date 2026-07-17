@@ -17,6 +17,20 @@
         app:layout_constraintTop_toTopOf="parent"
         app:navGraph="@navigation/nav_graph" />
 
+    <ImageButton
+        android:id="@+id/buttonAbout"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="14dp"
+        android:background="#33000000"
+        android:contentDescription="@string/cd_open_about"
+        android:elevation="6dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_info"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         style="@style/Widget.MercurOplay.BottomNav"

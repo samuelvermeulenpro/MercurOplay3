@@ -48,6 +48,26 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   "-- auditeurs" sans bloquer la lecture.
 - Lecture en arrière-plan avec notification système (voir `PlaybackService`).
 
+### Écran "À propos" (`AboutActivity`)
+- Accessible via l'icône ⓘ en haut à droite de l'écran principal (visible sur
+  les deux onglets), à côté du `BottomNavigationView`.
+- Affiche le logo de l'application (`ic_launcher`) et le logo **SVPRO**
+  fourni (`res/drawable-nodpi/logo_svpro.png`) côte à côte.
+- **Version** lue dynamiquement depuis `BuildConfig.VERSION_NAME`
+  (donc `versionName` du `app/build.gradle`) - jamais codée en dur, se met à
+  jour automatiquement à chaque nouvelle version buildée. Nécessite
+  `buildFeatures { buildConfig true }` (ajouté dans `app/build.gradle`).
+- Lien **Conditions d'utilisation** :
+  `https://oplay.radiomercure.fr/about/instance/home`
+- Lien **Licence GNU** : `https://www.gnu.org/licenses/gpl-3.0.html`
+  (GPL v3 - la demande ne précisait pas la version exacte de la licence GNU
+  visée ; à ajuster dans `strings.xml` (`about_license_url`) si une autre
+  licence GNU était voulue, par ex. LGPL ou AGPL).
+- Les deux liens s'ouvrent dans le navigateur via `Intent.ACTION_VIEW`, avec
+  un message d'erreur silencieux (`Toast`) si aucune app ne peut les gérer.
+- Bloc "Développeur" reprenant l'identité du logo SVPRO (Samuel Vermeulen,
+  Consultant Informatique &amp; Internet).
+
 ### Onglet "Podcasts" (`podcast/`)
 - Liste des épisodes à partir du flux MRSS :
   `https://oplay.radiomercure.fr/feeds/videos.xml?accountId=4`
@@ -86,6 +106,7 @@ fr.svpro.radiomercure/
 ├── MercurOplayApp.java        Application - crée le canal de notification
 ├── SplashActivity.java        Écran de démarrage (logo, ~1.4s)
 ├── MainActivity.java          Hôte du NavHostFragment + BottomNavigationView
+├── AboutActivity.java          Écran "À propos" (logos, version, liens)
 ├── playback/
 │   └── PlaybackService.java   MediaSessionService partagé (ExoPlayer + notif.)
 ├── live/

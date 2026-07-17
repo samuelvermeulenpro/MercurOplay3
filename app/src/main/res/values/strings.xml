@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MercurOplay by Radio Mercure</string>
+    <string name="app_name">MercurOplay By Radio Mercure</string>
 
     <string name="nav_live">Direct</string>
     <string name="nav_podcast">Podcasts</string>
@@ -36,4 +36,17 @@
     <string name="cd_cover_art">Pochette de la station</string>
     <string name="cd_app_logo">Logo MercurOplay</string>
     <string name="cd_episode_thumb">Vignette de l\'épisode</string>
+
+    <string name="about_title">À propos</string>
+    <string name="cd_open_about">À propos de l\'application</string>
+    <string name="cd_logo_svpro">Logo SVPRO</string>
+    <string name="about_version_format">Version %1$s</string>
+    <string name="about_terms_title">Conditions d\'utilisation</string>
+    <string name="about_terms_url">https://oplay.radiomercure.fr/about/instance/home</string>
+    <string name="about_license_title">Licence GNU (GPL v3)</string>
+    <string name="about_license_url">https://www.gnu.org/licenses/gpl-3.0.html</string>
+    <string name="about_developer_title">Développeur</string>
+    <string name="about_developer_name">Samuel Vermeulen</string>
+    <string name="about_developer_role">Consultant Informatique &amp; Internet</string>
+    <string name="about_link_error">Impossible d\'ouvrir le lien.</string>
 </resources>
