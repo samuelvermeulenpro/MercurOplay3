@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MercurOplay By Radio Mercure</string>
+    <string name="app_name">MercurOplay</string>
 
     <string name="nav_live">Direct</string>
-    <string name="nav_podcast">Podcasts</string>
+    <string name="nav_podcast">Manifestation Locales</string>
+    <string name="nav_channels">Les Émissions</string>
 
     <string name="live_on_air">EN DIRECT</string>
     <string name="live_loading">Connexion au direct…</string>
@@ -15,7 +16,7 @@
     <string name="live_error">Impossible de se connecter au direct. Vérifiez votre connexion.</string>
     <string name="live_retry">Réessayer</string>
 
-    <string name="podcast_title">Podcasts &amp; Vidéos</string>
+    <string name="podcast_title">Manifestation Locales</string>
     <string name="podcast_loading">Chargement des épisodes…</string>
     <string name="podcast_empty">Aucun épisode disponible pour le moment.</string>
     <string name="podcast_error">Impossible de charger les podcasts.</string>
@@ -25,10 +26,10 @@
     <string name="download_started">Téléchargement démarré</string>
     <string name="download_failed">Téléchargement impossible</string>
     <string name="download_permission_needed">Autorisation de stockage requise pour télécharger</string>
-    <string name="share_chooser_title">Partager l\'épisode</string>
+    <string name="share_chooser_title">Partager</string>
     <string name="share_text_format">%1$s\n%2$s</string>
-    <string name="cd_download">Télécharger l\'épisode</string>
-    <string name="cd_share">Partager l\'épisode</string>
+    <string name="cd_download">Télécharger</string>
+    <string name="cd_share">Partager</string>
 
     <string name="player_close">Fermer</string>
     <string name="player_play_pause">Lecture / Pause</string>
@@ -49,4 +50,18 @@
     <string name="about_developer_name">Samuel Vermeulen</string>
     <string name="about_developer_role">Consultant Informatique &amp; Internet</string>
     <string name="about_link_error">Impossible d\'ouvrir le lien.</string>
+
+    <string name="peertube_channels_title">Toutes les émissions</string>
+    <string name="peertube_channels_loading">Chargement des émissions…</string>
+    <string name="peertube_channels_empty">Aucune émission trouvée.</string>
+    <string name="peertube_channels_error">Impossible de charger les émissions.</string>
+    <string name="peertube_videos_loading">Chargement des médias…</string>
+    <string name="peertube_videos_empty">Aucune média disponible pour cette émission.</string>
+    <string name="peertube_videos_error">Impossible de charger les médias de cette émission.</string>
+    <string name="peertube_resolving_download">Préparation du téléchargement…</string>
+    <string name="peertube_resolving_playback">Préparation de la lecture…</string>
+    <string name="peertube_playback_error">Impossible de lire cette émission.</string>
+    <string name="action_back">Retour</string>
+    <string name="cd_channel_avatar">Avatar du programme</string>
+    <string name="cd_video_thumb">Vignette du programme</string>
 </resources>

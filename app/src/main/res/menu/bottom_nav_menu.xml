@@ -8,4 +8,8 @@
         android:id="@+id/podcastFragment"
         android:icon="@drawable/ic_podcast"
         android:title="@string/nav_podcast" />
+    <item
+        android:id="@+id/peertubeChannelsFragment"
+        android:icon="@drawable/ic_video_library"
+        android:title="@string/nav_channels" />
 </menu>

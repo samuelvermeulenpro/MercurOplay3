@@ -93,11 +93,64 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   `<link>` du flux (repli sur l'URL directe du média si le flux ne fournit
   pas de `<link>` pour cet épisode).
 
+### Onglet "Chaînes" (`peertube/`)
+- **Accès** : 3ᵉ onglet du menu de navigation du bas (`BottomNavigationView`),
+  avec la même icône 🎬 que l'ancien bouton flottant. Deux destinations dans
+  le nav graph : `PeerTubeChannelsFragment` (liste des chaînes, onglet
+  top-level) puis `PeerTubeVideosFragment` (vidéos d'une chaîne, atteint via
+  une action Navigation avec argument `channelName`/`channelDisplayName` -
+  le bouton retour dans l'en-tête et le bouton système "retour" font tous les
+  deux `popBackStack()` normalement, comme n'importe quelle destination
+  Navigation Component imbriquée).
+- **Authentification** : chaque appel envoie un token d'accès OAuth2 en
+  en-tête `Authorization: Bearer`, géré par `PeerTubeAuthStore` (persisté
+  dans `SharedPreferences`, initialisé depuis `Config.PEERTUBE_USER_TOKEN`/
+  `PEERTUBE_REFRESH_TOKEN`). **Rafraîchissement automatique** : si un appel
+  échoue en 401, `PeerTubeApiClient` appelle `POST /users/token` avec
+  `grant_type=refresh_token` (via `client_id`/`client_secret` +
+  `refresh_token`), persiste les nouveaux tokens reçus, puis rejoue l'appel
+  original une seule fois. Si le rafraîchissement échoue aussi (refresh_token
+  expiré, ~2 semaines par défaut chez PeerTube), l'erreur d'origine est
+  remontée à l'écran.
+  > ⚠️ Ces identifiants sont actuellement en dur dans `Config.java` (valeurs
+  > de départ uniquement - les tokens réels vivent ensuite dans
+  > `SharedPreferences`). Acceptable pour un usage interne/personnel, mais à
+  > éviter si ce build est un jour publié plus largement (Play Store, dépôt
+  > public) sans les déplacer vers un stockage plus sûr.
+- **Récupération des chaînes** (`PeerTubeApiClient#fetchChannels`) : un seul
+  appel à `GET /users/me`, dont la réponse inclut directement le tableau
+  `videoChannels[]` - inutile d'appeler `/accounts/{name}/video-channels`
+  séparément.
+- **Récupération des vidéos** (`PeerTubeApiClient#fetchChannelVideos`) :
+  `GET /video-channels/{name}/videos`, réponse paginée `{total, data: []}`.
+- **Lecture dans l'application** (`PeerTubePlayerActivity`, même principe que
+  `PodcastPlayerActivity` : `PlayerView` + `PlaybackService` partagé). La
+  liste des vidéos ne contient pas de source jouable directement : un tap sur
+  une vidéo déclenche `PeerTubeApiClient#fetchPlaybackSource`, qui résout en
+  priorité le master HLS (`streamingPlaylists[0].playlistUrl`, streaming
+  adaptatif) et sinon le meilleur fichier Web Video progressif - les deux
+  sont nativement compatibles Media3 (HLS déjà inclus dans les dépendances).
+- **Partage** : toujours l'URL de la page du média (`{instance}/w/{shortUUID}`,
+  déjà présente dans la réponse de liste - donc aucun appel réseau
+  supplémentaire n'est nécessaire pour partager).
+- **Téléchargement** : la liste des vidéos ne contient pas les fichiers
+  téléchargeables (`files`/`streamingPlaylists`), seule la fiche détaillée
+  d'une vidéo (`GET /videos/{id}`) les fournit. Un appui sur "Télécharger"
+  déclenche donc un appel de résolution (`PeerTubeApiClient#fetchDownloadUrl`)
+  qui choisit le fichier Web Video (mp4 progressif) de plus haute résolution
+  disponible s'il y en a, sinon la meilleure piste HLS, avant de lancer
+  `DownloadManager` (même mécanisme que pour les podcasts, y compris la
+  permission runtime sur API 24-28). Si `downloadEnabled` est à `false` sur la
+  vidéo, le téléchargement est refusé avec un message explicite.
+- Les champs de miniatures/avatars (`thumbnails[]`/`avatars[]` vs les anciens
+  `thumbnailPath`/`path` dépréciés) sont lus de façon tolérante aux deux
+  générations de l'API PeerTube, sur le même principe que `MrssFeedParser`.
+
 ### Lecture partagée (`playback/PlaybackService.java`)
-Un unique `MediaSessionService` (Media3) héberge l'`ExoPlayer` utilisé à la
-fois par le direct et par le lecteur de podcasts, ce qui permet la lecture en
-arrière-plan avec les contrôles système (notification, écran de verrouillage,
-Bluetooth) sans dupliquer la logique de lecture.
+Un unique `MediaSessionService` (Media3) héberge l'`ExoPlayer` utilisé par le
+direct, le lecteur de podcasts et le lecteur PeerTube, ce qui permet la
+lecture en arrière-plan avec les contrôles système (notification, écran de
+verrouillage, Bluetooth) sans dupliquer la logique de lecture.
 
 ## Architecture
 
@@ -120,8 +173,18 @@ fr.svpro.radiomercure/
 │   ├── MrssFeedParser.java    Parseur MRSS/RSS tolérant
 │   ├── Episode.java           Modèle (Serializable, passé via Intent)
 │   └── PodcastPlayerActivity.java  Lecteur audio/vidéo plein écran
+├── peertube/
+│   ├── PeerTubeChannelsFragment.java  Onglet "Chaînes" (top-level)
+│   ├── PeerTubeVideosFragment.java    Vidéos d'une chaîne (téléchargement/partage)
+│   ├── PeerTubePlayerActivity.java    Lecteur vidéo plein écran (HLS/progressif)
+│   ├── PeerTubeApiClient.java  Client REST PeerTube (OkHttp + JSON tolérant + refresh)
+│   ├── PeerTubeAuthStore.java  Persistance des tokens OAuth2 (SharedPreferences)
+│   ├── PtChannelAdapter.java
+│   ├── PtVideoAdapter.java
+│   ├── PtChannel.java          Modèle chaîne
+│   └── PtVideo.java            Modèle vidéo
 └── util/
-    └── Config.java            URLs centralisées (flux, feed, iTunes, etc.)
+    └── Config.java            URLs centralisées (flux, feed, iTunes, PeerTube, etc.)
 ```
 
 ## Identité visuelle

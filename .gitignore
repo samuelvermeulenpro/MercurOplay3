@@ -8,3 +8,4 @@
 .externalNativeBuild
 .cxx
 local.properties
+/app/src/main/java/fr/svpro/radiomercure/util/Config.java

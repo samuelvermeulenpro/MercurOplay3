@@ -48,6 +48,13 @@
             android:screenOrientation="unspecified"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
+        <activity
+            android:name=".peertube.PeerTubePlayerActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <service
             android:name=".playback.PlaybackService"
             android:exported="true"

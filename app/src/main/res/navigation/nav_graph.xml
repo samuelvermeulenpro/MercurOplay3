@@ -17,4 +17,27 @@
         android:label="@string/nav_podcast"
         tools:layout="@layout/fragment_podcast" />
 
+    <fragment
+        android:id="@+id/peertubeChannelsFragment"
+        android:name="fr.svpro.radiomercure.peertube.PeerTubeChannelsFragment"
+        android:label="@string/nav_channels"
+        tools:layout="@layout/fragment_peertube_list">
+        <action
+            android:id="@+id/action_channels_to_videos"
+            app:destination="@id/peertubeVideosFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/peertubeVideosFragment"
+        android:name="fr.svpro.radiomercure.peertube.PeerTubeVideosFragment"
+        android:label="@string/nav_channels"
+        tools:layout="@layout/fragment_peertube_list">
+        <argument
+            android:name="channelName"
+            app:argType="string" />
+        <argument
+            android:name="channelDisplayName"
+            app:argType="string" />
+    </fragment>
+
 </navigation>

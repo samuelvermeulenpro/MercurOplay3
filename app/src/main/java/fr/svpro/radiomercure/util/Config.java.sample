@@ -1,0 +1,46 @@
+package fr.svpro.radiomercure.util;
+
+public final class Config {
+
+    private Config() {
+    }
+
+    /** Live Icecast stream (MP3/AAC with ICY metadata). */
+    public static final String LIVE_STREAM_URL = "https://oplay-stream.radiomercure.net/live";
+
+    /**
+     * Icecast JSON status endpoint used to read the live listener count.
+     * Standard Icecast2 servers expose this at the host root; if the mount
+     * itself changes the listeners count is read from the matching source
+     * entry, with a safe fallback to "unknown" if the endpoint is unavailable.
+     * Assumption: same host as the stream above (not explicitly confirmed) -
+     * adjust if Radio Mercure's status page lives elsewhere.
+     */
+    public static final String LIVE_STATUS_URL = "https://oplay-stream.radiomercure.net/status-json.xsl";
+
+    /** Podcast / video MRSS feed. */
+    public static final String PODCAST_FEED_URL = "https://oplay.radiomercure.fr/feeds/videos.xml?accountId=4";
+
+    /** iTunes Search API - no API key required. */
+    public static final String ITUNES_SEARCH_URL = "https://itunes.apple.com/search";
+
+    public static final long LISTENER_POLL_INTERVAL_MS = 15_000L;
+
+    // --- PeerTube (oplay.radiomercure.fr) -------------------------------------------
+    // NOTE: these are the initial seed values only - PeerTubeAuthStore persists the
+    // live access/refresh tokens in SharedPreferences from here on, and
+    // PeerTubeApiClient transparently refreshes the access token (via client_id/
+    // client_secret + refresh_token, POST /users/token, grant_type=refresh_token)
+    // whenever a call comes back 401. If the refresh_token itself eventually expires
+    // (~2 weeks per PeerTube's default config) these constants will need updating.
+    // Security note: as with any hardcoded credential, avoid publishing this build
+    // publicly (e.g. on the Play Store or a public repo) without moving these to a
+    // more secure store (encrypted prefs, remote config, BuildConfig from a
+    // non-committed local.properties, etc.).
+    public static final String PEERTUBE_INSTANCE_URL = "https://oplay.radiomercure.fr";
+    public static final String PEERTUBE_API_BASE_URL = "https://oplay.radiomercure.fr/api/v1";
+    public static final String PEERTUBE_CLIENT_ID = "";
+    public static final String PEERTUBE_CLIENT_SECRET = "";
+    public static final String PEERTUBE_USER_TOKEN = "";
+    public static final String PEERTUBE_REFRESH_TOKEN = "";
+}
