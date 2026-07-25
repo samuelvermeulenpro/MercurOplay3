@@ -230,3 +230,27 @@ bandeau `Splash_Screen.png` fourni.
   media/la vignette est manquant, vérifier les noms de balises réels du flux
   et ajuster `MrssFeedParser` en conséquence (les points d'extension sont
   clairement identifiés dans le fichier).
+
+### Correctif : les appels API échouaient sur API ≤ 28 (Android 9 et antérieur)
+
+**Cause** : Android n'active **TLS 1.3 par défaut qu'à partir de l'API 29**
+(Android 10) - avant ça (donc sur toute la plage minSdk 24-28 de l'app), le
+fournisseur TLS de la plateforme se limite à TLS 1.2. Si le serveur (via son
+reverse-proxy nginx/Caddy) impose ou préfère TLS 1.3 - un profil de
+sécurité "moderne" assez courant aujourd'hui - la négociation TLS échoue
+purement et simplement sur ces appareils, avant même que la requête HTTP ne
+parte. Ce n'est pas propre à l'API PeerTube : ça aurait touché n'importe
+quel appel HTTPS de l'app sur ces versions si le même serveur/proxy est
+utilisé ailleurs.
+
+**Correctif** : ajout de **Conscrypt** (`org.conscrypt:conscrypt-android`),
+installé comme fournisseur de sécurité prioritaire au démarrage de l'app
+(`MercurOplayApp#installModernTlsProvider`, via
+`Security.insertProviderAt(Conscrypt.newProvider(), 1)`). Conscrypt apporte
+le support TLS 1.3 dès l'API 21, indépendamment du fournisseur TLS natif de
+la plateforme. L'installation se fait une seule fois, globalement pour tout
+le process - OkHttp (tous les clients du projet), Glide et Media3
+en bénéficient automatiquement sans changement de leur côté, puisqu'ils
+résolvent tous le contexte TLS par défaut de la JVM. En cas d'échec
+d'installation (device très ancien/atypique), le code retombe silencieusement
+sur le fournisseur TLS de la plateforme plutôt que de crasher au démarrage.
