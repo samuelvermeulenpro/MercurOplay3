@@ -16,7 +16,7 @@
     <string name="live_error">Impossible de se connecter au direct. Vérifiez votre connexion.</string>
     <string name="live_retry">Réessayer</string>
 
-    <string name="podcast_title">Manifestation Locales</string>
+    <string name="podcast_title">Derniers Podcasts</string>
     <string name="podcast_loading">Chargement des épisodes…</string>
     <string name="podcast_empty">Aucun épisode disponible pour le moment.</string>
     <string name="podcast_error">Impossible de charger les podcasts.</string>
