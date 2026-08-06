@@ -1,5 +1,6 @@
 package fr.svpro.radiomercure.podcast;
 
+import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +34,7 @@ public class PodcastAdapter extends RecyclerView.Adapter<PodcastAdapter.EpisodeV
         this.listener = listener;
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     public void submitList(List<Episode> newEpisodes) {
         episodes.clear();
         episodes.addAll(newEpisodes);
@@ -51,7 +53,7 @@ public class PodcastAdapter extends RecyclerView.Adapter<PodcastAdapter.EpisodeV
     public void onBindViewHolder(@NonNull EpisodeViewHolder holder, int position) {
         Episode episode = episodes.get(position);
         holder.title.setText(episode.title.isEmpty() ? "-" : episode.title);
-        holder.date.setText(episode.pubDate);
+        holder.date.setText(episode.description);
 
         boolean isVideo = episode.isVideo();
         holder.badge.setText(isVideo ? R.string.podcast_video_badge : R.string.podcast_audio_badge);
