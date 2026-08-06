@@ -10,8 +10,8 @@ android {
         applicationId "fr.svpro.radiomercure"
         minSdk 24
         targetSdk 37
-        versionCode 3021
-        versionName "3.0.2"
+        versionCode 3030
+        versionName "3.0.3"
     }
 
     buildTypes {
@@ -36,7 +36,7 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.14.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.2'
 
     // Navigation
     implementation 'androidx.navigation:navigation-fragment:2.9.8'
