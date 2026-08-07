@@ -64,4 +64,7 @@
     <string name="action_back">Retour</string>
     <string name="cd_channel_avatar">Avatar du programme</string>
     <string name="cd_video_thumb">Vignette du programme</string>
+
+    <string name="update_ready_message">Une mise à jour a été téléchargée.</string>
+    <string name="update_restart_action">Redémarrer</string>
 </resources>

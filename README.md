@@ -48,6 +48,28 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   "-- auditeurs" sans bloquer la lecture.
 - Lecture en arrière-plan avec notification système (voir `PlaybackService`).
 
+### Mise à jour automatique (`util/AppUpdateHelper.java`)
+- Utilise l'API **Google Play In-App Updates** (`com.google.android.play:app-update`)
+  en flux **flexible** : quand Play signale une nouvelle version, elle se
+  télécharge silencieusement en arrière-plan pendant que l'app reste
+  utilisable normalement (contrairement au flux "immediate", plein écran et
+  bloquant, qu'on n'a pas retenu ici pour ne pas interrompre l'écoute en
+  direct).
+- Une fois le téléchargement terminé, un `Snackbar` ("Une mise à jour a été
+  téléchargée" + bouton "Redémarrer") propose d'installer - l'app ne
+  redémarre jamais toute seule sans action de la personne.
+- Vérification faite à chaque `onResume()` de `MainActivity` (`checkForUpdate`
+  + `resumeUpdateIfNeeded`, cette seconde méthode rattrapant le cas où le
+  téléchargement s'est terminé pendant que l'app était en arrière-plan).
+- N'a aucun effet si l'app n'a pas été installée depuis le Play Store (ex.
+  build de test installé via `adb install`/ZIP direct) : `getAppUpdateInfo()`
+  échoue simplement, silencieusement, sans jamais impacter le reste de l'app.
+- Pour passer en flux **immediate** (mise à jour obligatoire, écran bloquant)
+  sur une version particulière, il suffit de changer
+  `AppUpdateType.FLEXIBLE` en `AppUpdateType.IMMEDIATE` dans
+  `AppUpdateHelper#startFlexibleUpdateIfAvailable` - la logique de
+  vérification reste identique.
+
 ### Écran "À propos" (`AboutActivity`)
 - Accessible via l'icône ⓘ en haut à droite de l'écran principal (visible sur
   les deux onglets), à côté du `BottomNavigationView`.
@@ -184,7 +206,8 @@ fr.svpro.radiomercure/
 │   ├── PtChannel.java          Modèle chaîne
 │   └── PtVideo.java            Modèle vidéo
 └── util/
-    └── Config.java            URLs centralisées (flux, feed, iTunes, PeerTube, etc.)
+    ├── Config.java            URLs centralisées (flux, feed, iTunes, PeerTube, etc.)
+    └── AppUpdateHelper.java   Mise à jour via Google Play In-App Updates
 ```
 
 ## Identité visuelle
@@ -230,6 +253,12 @@ bandeau `Splash_Screen.png` fourni.
   media/la vignette est manquant, vérifier les noms de balises réels du flux
   et ajuster `MrssFeedParser` en conséquence (les points d'extension sont
   clairement identifiés dans le fichier).
+- **Tester la mise à jour in-app** : l'API Play Core ne fonctionne que pour
+  une app installée depuis le Play Store, avec un `versionCode` réellement
+  supérieur publié sur une track (interne/fermée/production). Un simple
+  `adb install` d'un APK plus récent ne déclenche rien. Pour tester, publier
+  une version sur la track de test interne du Play Console, installer la
+  version précédente depuis ce lien, puis publier la nouvelle version.
 
 ### Correctif : les appels API échouaient sur API ≤ 28 (Android 9 et antérieur)
 
