@@ -139,6 +139,19 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   > `SharedPreferences`). Acceptable pour un usage interne/personnel, mais à
   > éviter si ce build est un jour publié plus largement (Play Store, dépôt
   > public) sans les déplacer vers un stockage plus sûr.
+  > 🐛 **Correctif** : `getString(clé, Config.X)` ne retombe sur la valeur de
+  > `Config` que si la clé n'a *jamais* été écrite en `SharedPreferences`.
+  > Concrètement, changer les tokens codés en dur dans `Config.java` (par ex.
+  > en générer de nouveaux côté PeerTube) n'avait auparavant aucun effet sur
+  > un appareil ayant déjà tourné avec l'ancienne paire : elle restait stockée
+  > et masquait silencieusement la nouvelle - et si cet ancien refresh_token
+  > avait entre-temps été invalidé côté serveur, chaque tentative de
+  > rafraîchissement échouait pour de bon (symptôme : "l'access_token ne se
+  > renouvelle jamais malgré le refresh_token"). `PeerTubeAuthStore` marque
+  > désormais la paire persistée avec le refresh_token de `Config` qui l'a
+  > semée ; si cette valeur change (nouveau build avec des identifiants
+  > différents), la paire stockée est considérée périmée et réinitialisée
+  > depuis `Config` au lieu de rester bloquée indéfiniment.
 - **Récupération des chaînes** (`PeerTubeApiClient#fetchChannels`) : un seul
   appel à `GET /users/me`, dont la réponse inclut directement le tableau
   `videoChannels[]` - inutile d'appeler `/accounts/{name}/video-channels`
