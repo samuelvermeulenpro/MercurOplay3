@@ -10,7 +10,7 @@ android {
         applicationId "fr.svpro.radiomercure"
         minSdk 24
         targetSdk 37
-        versionCode 3070
+        versionCode 3071
         versionName "3.0.7"
     }
 
