@@ -74,7 +74,7 @@
     <string name="contact_field_name">Nom ou Association *</string>
     <string name="contact_field_email">Adresse mail *</string>
     <string name="contact_field_phone">Téléphone</string>
-    <string name="contact_field_subject">Sujet *</string>
+    <string name="contact_field_subject">Choisissez une rubrique selon votre demande *</string>
     <string name="contact_label_name">Nom ou Association</string>
     <string name="contact_label_email">Adresse mail</string>
     <string name="contact_label_phone">Téléphone</string>
