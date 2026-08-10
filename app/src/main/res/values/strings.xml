@@ -5,6 +5,7 @@
     <string name="nav_live">Direct</string>
     <string name="nav_podcast">En Podcast</string>
     <string name="nav_channels">Les Émissions</string>
+    <string name="nav_contact">Nous Contacter</string>
 
     <string name="live_on_air">EN DIRECT</string>
     <string name="live_loading">Connexion au direct…</string>
@@ -67,4 +68,34 @@
 
     <string name="update_ready_message">Une mise à jour a été téléchargée.</string>
     <string name="update_restart_action">Redémarrer</string>
+
+    <string name="cd_open_contact">Nous contacter</string>
+    <string name="contact_title">Nous contacter</string>
+    <string name="contact_field_name">Nom ou Association *</string>
+    <string name="contact_field_email">Adresse mail *</string>
+    <string name="contact_field_phone">Téléphone</string>
+    <string name="contact_field_subject">Sujet *</string>
+    <string name="contact_label_name">Nom ou Association</string>
+    <string name="contact_label_email">Adresse mail</string>
+    <string name="contact_label_phone">Téléphone</string>
+    <string name="contact_label_subject">Sujet</string>
+    <string name="contact_field_message">Message *</string>
+    <string name="contact_field_attachment">Joindre un document (ex: affiche annonce locale)</string>
+    <string name="contact_field_attachment_hint">Images, PDF, MS Office, LibreOffice, texte brut</string>
+    <string name="cd_remove_attachment">Retirer le fichier joint</string>
+    <string name="contact_submit">Envoyer</string>
+    <string name="contact_error_required">Ce champ est requis</string>
+    <string name="contact_error_email_invalid">Adresse mail invalide</string>
+    <string name="contact_error_subject_required">Veuillez choisir un sujet</string>
+    <string name="contact_send_chooser_title">Envoyer via</string>
+    <string name="contact_no_email_app">Aucune application de messagerie disponible sur cet appareil.</string>
+    <string name="contact_email_subject_format">[MercurOplay] %1$s</string>
+    <string name="contact_signature">\n\n---\nEnvoyé depuis l\'application MercurOplay</string>
+
+    <string-array name="contact_subjects">
+        <item>Question générale</item>
+        <item>Demande de diffusion d\'une manifestation locale</item>
+        <item>Partenariat</item>
+        <item>Problème technique / bug</item>
+    </string-array>
 </resources>

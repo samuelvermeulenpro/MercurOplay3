@@ -32,6 +32,20 @@ public class MainActivity extends AppCompatActivity {
             NavController navController = ((NavHostFragment) navHostFragment).getNavController();
             BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
             NavigationUI.setupWithNavController(bottomNav, navController);
+
+            // "Contact" isn't a NavController destination (it's a plain form Activity), so
+            // it can't be wired through NavigationUI like the other 3 tabs. Intercepting the
+            // click here - after setupWithNavController - only replaces the tap listener;
+            // the destination-changed listener that keeps the correct tab highlighted (set
+            // up by setupWithNavController above) stays attached to navController and keeps
+            // working normally.
+            bottomNav.setOnItemSelectedListener(item -> {
+                if (item.getItemId() == R.id.action_open_contact) {
+                    startActivity(new Intent(this, fr.svpro.radiomercure.contact.ContactActivity.class));
+                    return false; // don't visually select this item; leave the real tab highlighted
+                }
+                return NavigationUI.onNavDestinationSelected(item, navController);
+            });
         }
 
         ImageButton buttonAbout = findViewById(R.id.buttonAbout);

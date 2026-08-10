@@ -26,6 +26,8 @@ public class AboutActivity extends AppCompatActivity {
 
         findViewById(R.id.rowTerms).setOnClickListener(v -> openUrl(getString(R.string.about_terms_url)));
         findViewById(R.id.rowLicense).setOnClickListener(v -> openUrl(getString(R.string.about_license_url)));
+        findViewById(R.id.rowContact).setOnClickListener(v ->
+                startActivity(new Intent(this, fr.svpro.radiomercure.contact.ContactActivity.class)));
     }
 
     private void openUrl(String url) {

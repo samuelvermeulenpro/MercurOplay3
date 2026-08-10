@@ -6,7 +6,7 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
 - **Namespace** : `fr.svpro.radiomercure`
 - **Nom de l'app** : MercurOplay
 - **Java 17, minSdk 24, targetSdk 34**
-- **Navigation** : `BottomNavigationView` + Jetpack Navigation Component, 2 onglets (Direct / Podcasts)
+- **Navigation** : `BottomNavigationView` + Jetpack Navigation Component, 4 onglets (Direct / Podcasts / Chaînes / Contact - ce dernier ouvre un formulaire, pas un vrai fragment de navigation)
 
 ## Fonctionnalités
 
@@ -89,6 +89,45 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   un message d'erreur silencieux (`Toast`) si aucune app ne peut les gérer.
 - Bloc "Développeur" reprenant l'identité du logo SVPRO (Samuel Vermeulen,
   Consultant Informatique &amp; Internet).
+- Une 3ᵉ ligne dans la carte de liens ("Nous contacter") ouvre l'écran de
+  contact ci-dessous.
+
+### Écran "Nous contacter" (`contact/ContactActivity`)
+- Accessible de deux façons : depuis l'écran "À propos" (ligne "Nous
+  contacter"), et directement via un 4ᵉ onglet "Contact" dans le menu de
+  navigation du bas. Comme ce n'est pas un vrai fragment/destination
+  `NavController` (juste un formulaire dans une Activity), l'appui sur cet
+  onglet est intercepté dans `MainActivity` pour lancer `ContactActivity`
+  sans perturber la sélection visuelle des 3 autres onglets (qui reste gérée
+  normalement par `NavigationUI`).
+- Champs : **Nom ou Association**\*, **Adresse mail**\*, **Téléphone**
+  (facultatif), **Sujet**\* (menu déroulant Material "Exposed Dropdown Menu",
+  items définis dans `strings.xml` → `contact_subjects`), **Message**\*, et
+  un **document à joindre** facultatif (images, PDF, MS Office, LibreOffice/
+  OpenDocument, texte brut - liste de mimetypes exacte dans
+  `ContactActivity.ALLOWED_ATTACHMENT_MIME_TYPES`, sélection via
+  `ActivityResultContracts.OpenDocument`).
+- Validation avant envoi : nom/email/sujet/message requis (erreurs affichées
+  directement sur les `TextInputLayout`), email vérifié via
+  `Patterns.EMAIL_ADDRESS`. Le téléphone et la pièce jointe restent
+  optionnels.
+- **Destinataire** : jamais affiché dans l'UI - lu depuis
+  `Config.CONTACT_EMAIL`.
+  > ⚠️ Aucune adresse précise n'a été fournie pour ce champ ; une valeur
+  > passe-partout (`contact@radiomercure.fr`) a été mise en place à ajuster
+  > dans `Config.java`.
+- **Envoi** : l'app ne dispose pas de backend mail, donc le formulaire
+  compose un `Intent.ACTION_SEND` (type `message/rfc822`, pour être
+  proposé uniquement aux applications de messagerie) pré-rempli avec
+  destinataire/sujet/corps (et la pièce jointe le cas échéant via
+  `EXTRA_STREAM` + permission de lecture accordée), puis ouvre le
+  sélecteur d'application. L'envoi effectif se termine dans l'app de
+  messagerie choisie par la personne - MercurOplay ne peut pas savoir si le
+  message a réellement été envoyé une fois le sélecteur ouvert, donc le
+  formulaire n'est ni vidé ni fermé automatiquement après ce point.
+- **Signature** : `contact_signature` dans `strings.xml`
+  (`"\n\n---\nEnvoyé depuis l'application MercurOplay"`), toujours ajoutée en
+  fin de message, après le contenu saisi.
 
 ### Onglet "Podcasts" (`podcast/`)
 - Liste des épisodes à partir du flux MRSS :
@@ -195,6 +234,8 @@ fr.svpro.radiomercure/
 ├── SplashActivity.java        Écran de démarrage (logo, ~1.4s)
 ├── MainActivity.java          Hôte du NavHostFragment + BottomNavigationView
 ├── AboutActivity.java          Écran "À propos" (logos, version, liens)
+├── contact/
+│   └── ContactActivity.java    Formulaire de contact (envoi via chooser e-mail)
 ├── playback/
 │   └── PlaybackService.java   MediaSessionService partagé (ExoPlayer + notif.)
 ├── live/
