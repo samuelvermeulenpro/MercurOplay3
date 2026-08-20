@@ -20,7 +20,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.util.List;
 
 import fr.svpro.radiomercure.R;
-import okhttp3.OkHttpClient;
 
 /** Top-level "Chaînes" tab: lists the PeerTube channels of the authenticated user. */
 public class PeerTubeChannelsFragment extends Fragment {
@@ -64,7 +63,7 @@ public class PeerTubeChannelsFragment extends Fragment {
         swipeRefresh.setColorSchemeResources(R.color.brand_orange, R.color.brand_blue);
         swipeRefresh.setOnRefreshListener(this::loadChannels);
 
-        apiClient = new PeerTubeApiClient(requireContext(), new OkHttpClient());
+        apiClient = PeerTubeApiClient.getInstance(requireContext());
 
         loadChannels();
     }
@@ -95,7 +94,7 @@ public class PeerTubeChannelsFragment extends Fragment {
                 if (!isAdded()) return;
                 progressLoading.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
-                textEmptyMessage.setText(R.string.peertube_channels_error);
+                textEmptyMessage.setText(getString(R.string.peertube_channels_error) + "\n" + message);
                 layoutEmpty.setVisibility(View.VISIBLE);
             }
         });

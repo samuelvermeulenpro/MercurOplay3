@@ -25,7 +25,6 @@ import java.util.Locale;
 
 import fr.svpro.radiomercure.R;
 import fr.svpro.radiomercure.playback.PlaybackService;
-import okhttp3.OkHttpClient;
 
 /**
  * PeerTube video player activity: resolves the best playback source (HLS master
@@ -53,7 +52,7 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_podcast_player);
 
         video = (PtVideo) getIntent().getSerializableExtra(EXTRA_VIDEO);
-        apiClient = new PeerTubeApiClient(this, new OkHttpClient());
+        apiClient = PeerTubeApiClient.getInstance(this);
 
         playerView = findViewById(R.id.playerView);
         TextView textTitle = findViewById(R.id.textPlayerTitle);
@@ -110,7 +109,8 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                Toast.makeText(PeerTubePlayerActivity.this, R.string.peertube_playback_error, Toast.LENGTH_SHORT).show();
+                Toast.makeText(PeerTubePlayerActivity.this,
+                        getString(R.string.peertube_playback_error) + " (" + message + ")", Toast.LENGTH_LONG).show();
             }
         });
     }

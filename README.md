@@ -191,6 +191,25 @@ Application Android (Java) pour la radio FM **Mercure**, avec écoute du direct
   > semée ; si cette valeur change (nouveau build avec des identifiants
   > différents), la paire stockée est considérée périmée et réinitialisée
   > depuis `Config` au lieu de rester bloquée indéfiniment.
+  > 🐛 **Correctif (token revoqué au bout de ~24h malgré le refresh)** :
+  > `PeerTubeApiClient` était instancié séparément par chacun des 3 écrans
+  > (chaînes, vidéos, lecteur), chacun avec son propre `OkHttpClient`. Si deux
+  > appels expiraient à peu près en même temps sur deux écrans différents
+  > (ex. navigation rapide chaîne → vidéos → lecteur), les deux lisaient le
+  > *même* refresh_token encore valide et déclenchaient chacun leur propre
+  > rafraîchissement en parallèle. Or PeerTube fait tourner le refresh_token à
+  > chaque utilisation : le premier appel réussit et le fait pivoter, mais le
+  > second - qui utilise la valeur désormais déjà consommée - échoue ; si le
+  > serveur applique une détection de réutilisation (pratique standard
+  > OAuth2), il peut alors révoquer toute la chaîne de tokens, ce qui
+  > correspond exactement à devoir tout régénérer à la main côté serveur.
+  > `PeerTubeApiClient` est maintenant un **singleton** (`getInstance(Context)`),
+  > partagé par les 3 écrans, dont `refreshAccessToken` met en file d'attente
+  > les appels concurrents plutôt que de laisser partir un second
+  > rafraîchissement en parallèle : un seul appel HTTP de rafraîchissement est
+  > jamais en vol à la fois pour toute l'app, et tous les appelants qui
+  > arrivent pendant qu'il est en cours attendent son résultat au lieu de
+  > redéclencher leur propre requête.
 - **Récupération des chaînes** (`PeerTubeApiClient#fetchChannels`) : un seul
   appel à `GET /users/me`, dont la réponse inclut directement le tableau
   `videoChannels[]` - inutile d'appeler `/accounts/{name}/video-channels`

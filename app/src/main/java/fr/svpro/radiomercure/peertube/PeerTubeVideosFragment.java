@@ -31,7 +31,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.util.List;
 
 import fr.svpro.radiomercure.R;
-import okhttp3.OkHttpClient;
 
 /** Videos of a single PeerTube channel, reached from {@link PeerTubeChannelsFragment}. */
 public class PeerTubeVideosFragment extends Fragment {
@@ -110,7 +109,7 @@ public class PeerTubeVideosFragment extends Fragment {
         swipeRefresh.setColorSchemeResources(R.color.brand_orange, R.color.brand_blue);
         swipeRefresh.setOnRefreshListener(this::loadVideos);
 
-        apiClient = new PeerTubeApiClient(requireContext(), new OkHttpClient());
+        apiClient = PeerTubeApiClient.getInstance(requireContext());
 
         loadVideos();
     }
@@ -142,7 +141,7 @@ public class PeerTubeVideosFragment extends Fragment {
                 if (!isAdded()) return;
                 progressLoading.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
-                textEmptyMessage.setText(R.string.peertube_videos_error);
+                textEmptyMessage.setText(getString(R.string.peertube_videos_error) + "\n" + message);
                 layoutEmpty.setVisibility(View.VISIBLE);
             }
         });
@@ -189,7 +188,8 @@ public class PeerTubeVideosFragment extends Fragment {
             @Override
             public void onError(String message) {
                 if (!isAdded()) return;
-                Toast.makeText(requireContext(), R.string.download_failed, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(),
+                        getString(R.string.download_failed) + " (" + message + ")", Toast.LENGTH_LONG).show();
             }
         });
     }

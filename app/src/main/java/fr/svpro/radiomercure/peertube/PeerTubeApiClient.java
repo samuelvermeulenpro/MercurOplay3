@@ -3,6 +3,7 @@ package fr.svpro.radiomercure.peertube;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,11 +26,27 @@ import okhttp3.Response;
  * downloadable file, and resolving a video's best in-app playback source.
  *
  * <p>Every call authenticates with a Bearer access token from {@link PeerTubeAuthStore}.
- * On a 401 response, the access token is transparently refreshed (via {@code client_id}/
- * {@code client_secret} + the stored refresh token, {@code POST /users/token} with
- * {@code grant_type=refresh_token}) and the original call is retried once. If the refresh
- * itself fails (e.g. the refresh token has also expired, ~2 weeks by PeerTube's default),
- * the original error is surfaced to the caller.
+ * On a 401 <i>or</i> 403 response (some PeerTube/OAuth2 middleware configurations report
+ * an expired token as 403 rather than 401), the access token is transparently refreshed
+ * (via {@code client_id}/{@code client_secret} + the stored refresh token,
+ * {@code POST /users/token} with {@code grant_type=refresh_token}) and the original call
+ * is retried once. If the refresh itself fails, the concrete reason (HTTP status, network
+ * error, or malformed response) is logged (tag "PeerTubeApiClient") and surfaced in the
+ * error message passed back to the UI, rather than a generic failure - so a future failure
+ * report only needs a logcat capture or a screenshot of the error, not more guessing.
+ *
+ * <p><b>Singleton</b>: obtained via {@link #getInstance(Context)} rather than constructed
+ * directly. PeerTube rotates the refresh token on every use (the response to a successful
+ * refresh includes a *new* refresh token, invalidating the previous one). Several screens
+ * in this app (channels, videos, player) each used to create their own client/OkHttpClient,
+ * so if two calls from different screens hit a 401 around the same time, both would read
+ * the same still-current refresh token from storage and each fire an independent refresh
+ * request; the first would succeed and rotate the token, but the second - now using an
+ * already-consumed refresh token - would be rejected, and PeerTube's reuse-detection can
+ * respond to that by revoking the whole token family, which is exactly what required
+ * regenerating everything by hand server-side. Routing every screen through one shared
+ * instance lets {@link #refreshAccessToken} coalesce concurrent 401s into a single
+ * in-flight refresh call that every caller then waits on and reuses.
  *
  * <p>Field names below are deliberately tolerant of two PeerTube API generations:
  * the modern {@code thumbnails[]} / {@code avatars[]} array (PeerTube >= 7.1/8.1) is
@@ -37,6 +54,21 @@ import okhttp3.Response;
  * relative fields (prefixed with the instance URL) for older server versions.
  */
 public class PeerTubeApiClient {
+
+    private static final String TAG = "PeerTubeApiClient";
+
+    private static volatile PeerTubeApiClient instance;
+
+    public static PeerTubeApiClient getInstance(Context context) {
+        if (instance == null) {
+            synchronized (PeerTubeApiClient.class) {
+                if (instance == null) {
+                    instance = new PeerTubeApiClient(context.getApplicationContext());
+                }
+            }
+        }
+        return instance;
+    }
 
     public interface ChannelsCallback {
         void onSuccess(List<PtChannel> channels);
@@ -68,9 +100,21 @@ public class PeerTubeApiClient {
     private final PeerTubeAuthStore authStore;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    public PeerTubeApiClient(Context context, OkHttpClient client) {
-        this.client = client;
-        this.authStore = new PeerTubeAuthStore(context);
+    // --- Refresh coalescing: see class javadoc. Guards against concurrent refresh calls
+    // racing on the same (about-to-be-rotated) refresh token.
+    private final Object refreshLock = new Object();
+    private boolean refreshInFlight = false;
+    private final List<Runnable> queuedOnSuccess = new ArrayList<>();
+    private final List<RefreshFailureHandler> queuedOnFailure = new ArrayList<>();
+
+    /** Carries a concrete, loggable reason a refresh failed (HTTP code, network error, etc.). */
+    private interface RefreshFailureHandler {
+        void onFailure(String reason);
+    }
+
+    PeerTubeApiClient(Context appContext) {
+        this.client = new OkHttpClient();
+        this.authStore = new PeerTubeAuthStore(appContext);
     }
 
     // --- Public API ------------------------------------------------------------------
@@ -240,16 +284,21 @@ public class PeerTubeApiClient {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.w(TAG, "Network failure calling " + url + ": " + e.getMessage());
                 handler.onError(e.getMessage());
             }
 
             @Override
             public void onResponse(Call call, Response response) {
-                if (response.code() == 401 && !isRetry) {
+                int code = response.code();
+                boolean looksLikeAuthFailure = code == 401 || code == 403;
+                if (looksLikeAuthFailure && !isRetry) {
+                    Log.d(TAG, "Authed GET " + url + " -> HTTP " + code + ", attempting token refresh");
                     response.close();
                     refreshAccessToken(
                             () -> getWithAuthInternal(url, handler, true),
-                            () -> handler.onError("Session PeerTube expirée - reconnexion impossible"));
+                            reason -> handler.onError(
+                                    "Session PeerTube expirée - reconnexion impossible (" + reason + ")"));
                     return;
                 }
                 try (Response r = response) {
@@ -261,8 +310,23 @@ public class PeerTubeApiClient {
         });
     }
 
-    /** POST /users/token with grant_type=refresh_token; persists the new tokens on success. */
-    private void refreshAccessToken(Runnable onSuccess, Runnable onFailure) {
+    /**
+     * POST /users/token with grant_type=refresh_token; persists the new tokens on success.
+     * Coalesces concurrent callers: if a refresh is already in flight, this queues the
+     * given callbacks behind it instead of firing a second, racing request - see the class
+     * javadoc for why that matters (PeerTube rotates the refresh token on every use).
+     */
+    private void refreshAccessToken(Runnable onSuccess, RefreshFailureHandler onFailure) {
+        synchronized (refreshLock) {
+            queuedOnSuccess.add(onSuccess);
+            queuedOnFailure.add(onFailure);
+            if (refreshInFlight) {
+                Log.d(TAG, "Refresh already in flight, queuing this caller behind it");
+                return;
+            }
+            refreshInFlight = true;
+        }
+
         FormBody formBody = new FormBody.Builder()
                 .add("client_id", Config.PEERTUBE_CLIENT_ID)
                 .add("client_secret", Config.PEERTUBE_CLIENT_SECRET)
@@ -277,30 +341,66 @@ public class PeerTubeApiClient {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                onFailure.run();
+                Log.w(TAG, "Refresh call network failure: " + e.getMessage());
+                completeRefresh(false, "réseau : " + e.getMessage());
             }
 
             @Override
             public void onResponse(Call call, Response response) {
                 try (Response r = response) {
                     if (!r.isSuccessful() || r.body() == null) {
-                        onFailure.run();
+                        String bodySnippet = safeBodySnippet(r);
+                        Log.w(TAG, "Refresh call failed: HTTP " + r.code() + " body=" + bodySnippet);
+                        completeRefresh(false, "HTTP " + r.code());
                         return;
                     }
                     JSONObject json = new JSONObject(r.body().string());
                     String newAccessToken = json.optString("access_token", null);
                     String newRefreshToken = json.optString("refresh_token", null);
                     if (newAccessToken == null || newAccessToken.isEmpty()) {
-                        onFailure.run();
+                        Log.w(TAG, "Refresh call returned HTTP " + r.code() + " but no access_token in body");
+                        completeRefresh(false, "réponse sans access_token");
                         return;
                     }
+                    Log.d(TAG, "Refresh succeeded" + (newRefreshToken != null && !newRefreshToken.isEmpty()
+                            ? " (refresh token rotated)" : " (refresh token unchanged)"));
                     authStore.saveTokens(newAccessToken, newRefreshToken);
-                    onSuccess.run();
+                    completeRefresh(true, null);
                 } catch (Exception e) {
-                    onFailure.run();
+                    Log.w(TAG, "Refresh call response parsing failed: " + e.getMessage());
+                    completeRefresh(false, "réponse invalide : " + e.getMessage());
                 }
             }
         });
+    }
+
+    /** Best-effort peek at a failed response body for logging, without risking a crash. */
+    private String safeBodySnippet(Response response) {
+        try {
+            if (response.body() == null) return "(vide)";
+            String body = response.body().string();
+            return body.length() > 300 ? body.substring(0, 300) + "…" : body;
+        } catch (Exception e) {
+            return "(illisible)";
+        }
+    }
+
+    /** Drains the queued callbacks accumulated while the single in-flight refresh ran. */
+    private void completeRefresh(boolean success, String failureReason) {
+        List<Runnable> successCallbacks;
+        List<RefreshFailureHandler> failureCallbacks;
+        synchronized (refreshLock) {
+            refreshInFlight = false;
+            successCallbacks = new ArrayList<>(queuedOnSuccess);
+            failureCallbacks = new ArrayList<>(queuedOnFailure);
+            queuedOnSuccess.clear();
+            queuedOnFailure.clear();
+        }
+        if (success) {
+            for (Runnable r : successCallbacks) r.run();
+        } else {
+            for (RefreshFailureHandler f : failureCallbacks) f.onFailure(failureReason);
+        }
     }
 
     // --- Parsing helpers ---------------------------------------------------------------
