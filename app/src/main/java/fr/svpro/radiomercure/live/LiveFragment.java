@@ -47,6 +47,9 @@ public class LiveFragment extends Fragment {
     private MediaController mediaController;
     private ListenableFuture<MediaController> controllerFuture;
     private boolean connecting = false;
+    // Set when the person taps play while a passive (view-creation-time) connection
+    // attempt is still in flight, so the pending tap gets honored once it completes.
+    private boolean playRequestedWhileConnecting = false;
 
     private OkHttpClient httpClient;
     private CoverArtFetcher coverArtFetcher;
@@ -78,8 +81,11 @@ public class LiveFragment extends Fragment {
         coverArtFetcher = new CoverArtFetcher(httpClient);
         statusFetcher = new IcecastStatusFetcher(httpClient);
 
-        // Neutral resting state: no service bound yet, no metadata fetched yet. Everything
-        // below only starts once the user actually presses play (see togglePlayback()).
+        // Neutral resting state by default (placeholder cover, no metadata sync, nothing
+        // fetched). If a stream is already playing in the background (service survived a
+        // tab switch / the fragment being recreated), connect(false) below replaces this
+        // with the real current state within a moment - it never forces playback to start
+        // on its own, only observes what's already happening.
         showPlaceholderNowPlaying();
         buttonPlayPause.setImageResource(R.drawable.ic_play);
         buttonPlayPause.setContentDescription(getString(R.string.live_play));
@@ -91,13 +97,10 @@ public class LiveFragment extends Fragment {
         buttonRetry.setOnClickListener(v -> {
             textError.setVisibility(View.GONE);
             buttonRetry.setVisibility(View.GONE);
-            if (mediaController != null) {
-                mediaController.prepare();
-                mediaController.play();
-            } else if (!connecting) {
-                connectAndPlay();
-            }
+            connect(true);
         });
+
+        connect(false);
     }
 
     /**
@@ -112,28 +115,50 @@ public class LiveFragment extends Fragment {
     }
 
     private void togglePlayback() {
-        if (mediaController == null) {
-            // First tap: this is the moment the service gets launched and metadata/cover
-            // sync begins - nothing happens before this on screen open.
-            if (!connecting) {
-                connectAndPlay();
+        if (mediaController != null && mediaController.isPlaying()) {
+            mediaController.pause();
+            return;
+        }
+        // Not currently playing (or not connected yet): connect if needed, then start/resume.
+        connect(true);
+    }
+
+    /**
+     * Connects to the shared {@link PlaybackService} if not already connected, then either:
+     * <ul>
+     *   <li>{@code startPlayback=false} (called passively on view creation): only syncs the
+     *   UI to whatever the player is really doing right now - never starts playback on its
+     *   own. This is what fixes the play button/cover resetting to placeholder after
+     *   switching tabs or backgrounding the app while the stream keeps playing: the fragment
+     *   is recreated with no controller, and without this call there is nothing to make
+     *   {@code Player.Listener} fire again for a state that isn't changing.</li>
+     *   <li>{@code startPlayback=true} (an explicit play tap): prepares the stream if needed
+     *   and plays/resumes it once connected.</li>
+     * </ul>
+     */
+    private void connect(boolean startPlayback) {
+        if (mediaController != null) {
+            if (startPlayback) {
+                if (mediaController.getPlaybackState() == Player.STATE_IDLE) {
+                    prepareLiveStreamIfNeeded();
+                }
+                mediaController.play();
+            } else {
+                syncUiToCurrentPlayerState();
             }
             return;
         }
-        if (mediaController.isPlaying()) {
-            mediaController.pause();
-        } else {
-            if (mediaController.getPlaybackState() == Player.STATE_IDLE) {
-                prepareLiveStreamIfNeeded();
-            }
-            mediaController.play();
-        }
-    }
 
-    private void connectAndPlay() {
+        if (connecting) {
+            if (startPlayback) playRequestedWhileConnecting = true;
+            return;
+        }
+
         connecting = true;
-        progressBuffering.setVisibility(View.VISIBLE);
-        buttonPlayPause.setVisibility(View.INVISIBLE);
+        if (startPlayback) {
+            progressBuffering.setVisibility(View.VISIBLE);
+            buttonPlayPause.setVisibility(View.INVISIBLE);
+        }
 
         SessionToken sessionToken = new SessionToken(
                 requireContext(),
@@ -141,13 +166,23 @@ public class LiveFragment extends Fragment {
         controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
             connecting = false;
+            boolean shouldPlay = startPlayback || playRequestedWhileConnecting;
+            playRequestedWhileConnecting = false;
             try {
                 mediaController = controllerFuture.get();
                 setupPlayerListener();
-                prepareLiveStreamIfNeeded();
-                mediaController.play();
+                if (shouldPlay) {
+                    prepareLiveStreamIfNeeded();
+                    mediaController.play();
+                } else {
+                    syncUiToCurrentPlayerState();
+                }
             } catch (Exception e) {
-                showError();
+                if (shouldPlay) {
+                    showError();
+                }
+                // A passive connection attempt failing silently keeps the placeholder state -
+                // no error worth interrupting the person over just from opening the tab.
             }
         }, MoreExecutors.directExecutor());
     }
@@ -203,6 +238,29 @@ public class LiveFragment extends Fragment {
         });
 
         updatePlayPauseIcon();
+    }
+
+    /**
+     * Reads the player's actual current state right after connecting and reflects it
+     * immediately, rather than waiting for a {@code Player.Listener} callback that will
+     * never fire if nothing is actually changing (e.g. reconnecting to a stream that was
+     * already happily playing before the fragment got recreated).
+     */
+    private void syncUiToCurrentPlayerState() {
+        if (mediaController == null) return;
+
+        int state = mediaController.getPlaybackState();
+        boolean isBuffering = state == Player.STATE_BUFFERING;
+        progressBuffering.setVisibility(isBuffering ? View.VISIBLE : View.GONE);
+        buttonPlayPause.setVisibility(isBuffering ? View.INVISIBLE : View.VISIBLE);
+
+        updatePlayPauseIcon();
+
+        if (state == Player.STATE_IDLE) {
+            showPlaceholderNowPlaying();
+        } else {
+            applyNowPlaying(mediaController.getMediaMetadata());
+        }
     }
 
     private void applyNowPlaying(MediaMetadata metadata) {
@@ -318,5 +376,6 @@ public class LiveFragment extends Fragment {
         }
         mediaController = null;
         connecting = false;
+        playRequestedWhileConnecting = false;
     }
 }
