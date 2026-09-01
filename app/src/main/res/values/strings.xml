@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MercurOplay</string>
+    <string name="exit_confirm_message">Appuyez à nouveau sur retour pour quitter</string>
 
     <string name="nav_live">Direct</string>
     <string name="nav_podcast">En Podcast</string>
