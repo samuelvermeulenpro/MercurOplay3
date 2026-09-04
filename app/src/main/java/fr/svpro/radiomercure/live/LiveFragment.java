@@ -32,6 +32,12 @@ import fr.svpro.radiomercure.playback.PlaybackService;
 import fr.svpro.radiomercure.util.Config;
 import okhttp3.OkHttpClient;
 
+/**
+ * Live radio tab. Note this shares a single {@link PlaybackService}/ExoPlayer instance with
+ * the podcast and PeerTube players, so nearly everything here has to explicitly check
+ * {@link #isCurrentItemLiveStream()} rather than assuming "the player" always means "the
+ * live stream" - see individual method comments for why.
+ */
 @UnstableApi
 public class LiveFragment extends Fragment {
 
@@ -114,12 +120,28 @@ public class LiveFragment extends Fragment {
         textTrackArtist.setText("");
     }
 
+    /**
+     * True only if the shared player's *currently loaded* item is the live stream - as
+     * opposed to a podcast episode or PeerTube video that happens to be loaded on the same
+     * player. Every piece of UI/state logic below that would otherwise assume "the player"
+     * always means "the live stream" goes through this check.
+     */
+    private boolean isCurrentItemLiveStream() {
+        if (mediaController == null) return false;
+        MediaItem currentItem = mediaController.getCurrentMediaItem();
+        return currentItem != null && currentItem.localConfiguration != null
+                && Config.LIVE_STREAM_URL.equals(currentItem.localConfiguration.uri.toString());
+    }
+
     private void togglePlayback() {
-        if (mediaController != null && mediaController.isPlaying()) {
+        // Only treat this as "pause" if the live stream is specifically what's currently
+        // playing. Otherwise (nothing loaded, or a podcast/PeerTube video is loaded instead)
+        // a tap always means "switch the shared player over to the live stream and play it" -
+        // never "pause whatever else happens to be playing".
+        if (mediaController != null && isCurrentItemLiveStream() && mediaController.isPlaying()) {
             mediaController.pause();
             return;
         }
-        // Not currently playing (or not connected yet): connect if needed, then start/resume.
         connect(true);
     }
 
@@ -127,21 +149,24 @@ public class LiveFragment extends Fragment {
      * Connects to the shared {@link PlaybackService} if not already connected, then either:
      * <ul>
      *   <li>{@code startPlayback=false} (called passively on view creation): only syncs the
-     *   UI to whatever the player is really doing right now - never starts playback on its
-     *   own. This is what fixes the play button/cover resetting to placeholder after
-     *   switching tabs or backgrounding the app while the stream keeps playing: the fragment
-     *   is recreated with no controller, and without this call there is nothing to make
-     *   {@code Player.Listener} fire again for a state that isn't changing.</li>
-     *   <li>{@code startPlayback=true} (an explicit play tap): prepares the stream if needed
-     *   and plays/resumes it once connected.</li>
+     *   UI to whatever the player is really doing right now - never starts or redirects
+     *   playback on its own. This is what fixes the play button/cover resetting to
+     *   placeholder after switching tabs or backgrounding the app while the stream keeps
+     *   playing: the fragment is recreated with no controller, and without this call there
+     *   is nothing to make {@code Player.Listener} fire again for a state that isn't
+     *   changing.</li>
+     *   <li>{@code startPlayback=true} (an explicit play tap): switches the shared player
+     *   over to the live stream if it's currently showing something else (podcast/PeerTube
+     *   video), then plays/resumes it. Always calls {@link #prepareLiveStreamIfNeeded()}
+     *   regardless of the player's current state - gating that behind "only if idle" was the
+     *   bug that let tapping play here silently resume whatever else was last playing
+     *   instead of switching to the live stream.</li>
      * </ul>
      */
     private void connect(boolean startPlayback) {
         if (mediaController != null) {
             if (startPlayback) {
-                if (mediaController.getPlaybackState() == Player.STATE_IDLE) {
-                    prepareLiveStreamIfNeeded();
-                }
+                prepareLiveStreamIfNeeded();
                 mediaController.play();
             } else {
                 syncUiToCurrentPlayerState();
@@ -187,14 +212,11 @@ public class LiveFragment extends Fragment {
         }, MoreExecutors.directExecutor());
     }
 
+    /** Switches the shared player to the live stream unless it's already on it, then syncs the icon. */
     private void prepareLiveStreamIfNeeded() {
         if (mediaController == null) return;
-        MediaItem currentItem = mediaController.getCurrentMediaItem();
-        boolean alreadyOnLiveStream = currentItem != null
-                && currentItem.localConfiguration != null
-                && Config.LIVE_STREAM_URL.equals(currentItem.localConfiguration.uri.toString());
 
-        if (!alreadyOnLiveStream) {
+        if (!isCurrentItemLiveStream()) {
             MediaItem mediaItem = new MediaItem.Builder()
                     .setUri(Config.LIVE_STREAM_URL)
                     .setMediaId("live_stream")
@@ -216,6 +238,12 @@ public class LiveFragment extends Fragment {
 
             @Override
             public void onPlaybackStateChanged(int playbackState) {
+                if (!isCurrentItemLiveStream()) {
+                    // The shared player just switched to (or already had) a podcast/PeerTube
+                    // video loaded - this state change isn't about the live stream at all.
+                    showNeutralLiveTabState();
+                    return;
+                }
                 progressBuffering.setVisibility(
                         playbackState == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
                 buttonPlayPause.setVisibility(
@@ -228,11 +256,23 @@ public class LiveFragment extends Fragment {
 
             @Override
             public void onPlayerError(@NonNull PlaybackException error) {
-                showError();
+                // Only surface this as a live-stream error if the live stream was actually
+                // what errored - an error from the podcast/PeerTube player isn't ours to show.
+                if (isCurrentItemLiveStream()) {
+                    showError();
+                }
             }
 
             @Override
             public void onMediaMetadataChanged(@NonNull MediaMetadata mediaMetadata) {
+                if (!isCurrentItemLiveStream()) {
+                    // The shared player switched to other content (e.g. a podcast was
+                    // started from another tab while this one stayed alive in the
+                    // background) - fall back to the neutral state instead of showing or
+                    // fetching artwork for content that isn't the live stream.
+                    showNeutralLiveTabState();
+                    return;
+                }
                 applyNowPlaying(mediaMetadata);
             }
         });
@@ -249,6 +289,13 @@ public class LiveFragment extends Fragment {
     private void syncUiToCurrentPlayerState() {
         if (mediaController == null) return;
 
+        if (!isCurrentItemLiveStream()) {
+            // The shared player is currently busy with a podcast/PeerTube video, not the
+            // live stream - show this tab's neutral state; a play tap will switch it over.
+            showNeutralLiveTabState();
+            return;
+        }
+
         int state = mediaController.getPlaybackState();
         boolean isBuffering = state == Player.STATE_BUFFERING;
         progressBuffering.setVisibility(isBuffering ? View.VISIBLE : View.GONE);
@@ -261,6 +308,15 @@ public class LiveFragment extends Fragment {
         } else {
             applyNowPlaying(mediaController.getMediaMetadata());
         }
+    }
+
+    /** Neutral resting state shown whenever the shared player isn't on the live stream. */
+    private void showNeutralLiveTabState() {
+        progressBuffering.setVisibility(View.GONE);
+        buttonPlayPause.setVisibility(View.VISIBLE);
+        buttonPlayPause.setImageResource(R.drawable.ic_play);
+        buttonPlayPause.setContentDescription(getString(R.string.live_play));
+        showPlaceholderNowPlaying();
     }
 
     private void applyNowPlaying(MediaMetadata metadata) {
@@ -328,11 +384,12 @@ public class LiveFragment extends Fragment {
                 new SessionCommand(PlaybackService.COMMAND_SET_ARTWORK, Bundle.EMPTY), args);
     }
 
+    /** Reflects "is the live stream specifically playing" - never generic isPlaying(). */
     private void updatePlayPauseIcon() {
         if (mediaController == null) return;
-        boolean playing = mediaController.isPlaying();
-        buttonPlayPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
-        buttonPlayPause.setContentDescription(getString(playing ? R.string.live_pause : R.string.live_play));
+        boolean playingLive = isCurrentItemLiveStream() && mediaController.isPlaying();
+        buttonPlayPause.setImageResource(playingLive ? R.drawable.ic_pause : R.drawable.ic_play);
+        buttonPlayPause.setContentDescription(getString(playingLive ? R.string.live_pause : R.string.live_play));
     }
 
     private void showError() {
