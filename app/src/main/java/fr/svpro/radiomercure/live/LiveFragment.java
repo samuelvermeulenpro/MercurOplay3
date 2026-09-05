@@ -113,8 +113,16 @@ public class LiveFragment extends Fragment {
      * Resets the "now playing" area to its neutral state (placeholder cover, default
      * station name, no artist) without touching the player/service - used before any
      * playback has been requested, and if artwork lookup comes back empty.
+     *
+     * <p>Also clears {@link #lastArtworkQueryKey}: without this, switching away from the
+     * live stream (podcast/PeerTube video) and back to it while it's still on the very same
+     * track it was on before would never re-fetch the cover, since the dedup key would still
+     * match and the fetch would be skipped - even though the ImageView itself had been reset
+     * to the placeholder in the meantime. The cover would then stay stuck on the placeholder
+     * until the next actual track change made the key differ again.
      */
     private void showPlaceholderNowPlaying() {
+        lastArtworkQueryKey = null;
         imageCover.setImageResource(R.drawable.ic_placeholder_cover);
         textTrackTitle.setText(R.string.live_no_track);
         textTrackArtist.setText("");
