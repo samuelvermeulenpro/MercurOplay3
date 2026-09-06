@@ -10,4 +10,8 @@ public class PtChannel implements Serializable {
     public String description = "";
     public String avatarUrl = "";      // resolved absolute URL, may be empty
     public int videosCount = -1;       // -1 = unknown until videos are actually listed
+    // ISO 8601 UTC timestamp (e.g. "2023-01-15T10:30:00.000Z") as returned by the API.
+    // Sorts correctly with plain string comparison since PeerTube always returns it
+    // zero-padded and in UTC - no date parsing needed. Empty if missing/unparseable.
+    public String createdAt = "";
 }

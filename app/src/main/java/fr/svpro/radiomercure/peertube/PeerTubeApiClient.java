@@ -112,7 +112,7 @@ public class PeerTubeApiClient {
         void onFailure(String reason);
     }
 
-    PeerTubeApiClient(Context appContext) {
+    private PeerTubeApiClient(Context appContext) {
         this.client = new OkHttpClient();
         this.authStore = new PeerTubeAuthStore(appContext);
     }
@@ -121,9 +121,11 @@ public class PeerTubeApiClient {
 
     /** Fetches every video channel owned by the authenticated user via GET /users/me. */
     public void fetchChannels(ChannelsCallback callback) {
+        Log.d(TAG, "fetchChannels() called");
         getWithAuth(Config.PEERTUBE_API_BASE_URL + "/users/me", new RawResultHandler() {
             @Override
             public void onResponse(Response response) throws Exception {
+                Log.d(TAG, "fetchChannels() -> HTTP " + response.code());
                 if (!response.isSuccessful() || response.body() == null) {
                     mainHandler.post(() -> callback.onError("HTTP " + response.code()));
                     return;
@@ -148,11 +150,13 @@ public class PeerTubeApiClient {
 
     /** Fetches the videos of a single channel via GET /video-channels/{name}/videos. */
     public void fetchChannelVideos(String channelName, VideosCallback callback) {
+        Log.d(TAG, "fetchChannelVideos(" + channelName + ") called");
         String url = Config.PEERTUBE_API_BASE_URL + "/video-channels/" + channelName
                 + "/videos?count=100&sort=-publishedAt";
         getWithAuth(url, new RawResultHandler() {
             @Override
             public void onResponse(Response response) throws Exception {
+                Log.d(TAG, "fetchChannelVideos(" + channelName + ") -> HTTP " + response.code());
                 if (!response.isSuccessful() || response.body() == null) {
                     mainHandler.post(() -> callback.onError("HTTP " + response.code()));
                     return;
@@ -183,9 +187,11 @@ public class PeerTubeApiClient {
      * falls back to the highest-resolution HLS rendition.
      */
     public void fetchDownloadUrl(String videoId, DownloadUrlCallback callback) {
+        Log.d(TAG, "fetchDownloadUrl(" + videoId + ") called");
         getWithAuth(Config.PEERTUBE_API_BASE_URL + "/videos/" + videoId, new RawResultHandler() {
             @Override
             public void onResponse(Response response) throws Exception {
+                Log.d(TAG, "fetchDownloadUrl(" + videoId + ") -> HTTP " + response.code());
                 if (!response.isSuccessful() || response.body() == null) {
                     mainHandler.post(() -> callback.onError("HTTP " + response.code()));
                     return;
@@ -230,9 +236,11 @@ public class PeerTubeApiClient {
      * are directly playable by Media3 (HLS support is already included in the app).
      */
     public void fetchPlaybackSource(String videoId, PlaybackSourceCallback callback) {
+        Log.d(TAG, "fetchPlaybackSource(" + videoId + ") called");
         getWithAuth(Config.PEERTUBE_API_BASE_URL + "/videos/" + videoId, new RawResultHandler() {
             @Override
             public void onResponse(Response response) throws Exception {
+                Log.d(TAG, "fetchPlaybackSource(" + videoId + ") -> HTTP " + response.code());
                 if (!response.isSuccessful() || response.body() == null) {
                     mainHandler.post(() -> callback.onError("HTTP " + response.code()));
                     return;
@@ -438,6 +446,7 @@ public class PeerTubeApiClient {
         channel.displayName = obj.optString("displayName", channel.name);
         channel.description = obj.optString("description", "");
         channel.avatarUrl = resolveImageUrl(obj.optJSONArray("avatars"));
+        channel.createdAt = obj.optString("createdAt", "");
         return channel;
     }
 

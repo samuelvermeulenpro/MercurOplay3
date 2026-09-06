@@ -5,20 +5,14 @@
     android:layout_height="match_parent"
     android:background="@color/background_light">
 
-    <TextView
+    <View
         android:id="@+id/headerBackground"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="80dp"
         android:background="@drawable/bg_header_gradient"
-        android:fontFamily="sans-serif-medium"
-        android:paddingStart="20dp"
-        android:paddingTop="20dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="@id/textHeader" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageButton
         android:id="@+id/buttonBack"
@@ -38,18 +32,37 @@
         android:id="@+id/textHeader"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_header_gradient"
+        android:layout_marginStart="20dp"
+        android:ellipsize="end"
         android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
         android:paddingStart="20dp"
-        android:paddingTop="20dp"
+        android:paddingTop="8dp"
         android:paddingEnd="20dp"
-        android:paddingBottom="16dp"
+        android:paddingBottom="8dp"
         android:text="@string/peertube_channels_title"
         android:textColor="@color/white"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toStartOf="@id/buttonSort"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@id/headerBackground"
+        app:layout_constraintBottom_toBottomOf="@id/headerBackground"
+        app:layout_goneMarginStart="0dp"
+        app:layout_goneMarginEnd="0dp" />
+
+    <ImageButton
+        android:id="@+id/buttonSort"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="62dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/cd_sort_channels"
+        android:padding="8dp"
+        android:src="@drawable/ic_sort"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/textHeader"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/textHeader" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
