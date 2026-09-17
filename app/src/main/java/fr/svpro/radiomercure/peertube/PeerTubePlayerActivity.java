@@ -9,7 +9,9 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
@@ -77,6 +79,7 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
         controllerFuture.addListener(() -> {
             try {
                 mediaController = controllerFuture.get();
+                setVideoTrackDisabled(false); // rendering video again now that we're visible
                 playerView.setPlayer(mediaController);
                 resolveAndPlay();
             } catch (Exception ignored) {
@@ -148,14 +151,31 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (mediaController != null) {
-            mediaController.pause();
-        }
+        // Same reasoning as PodcastPlayerActivity: don't pause just because the screen
+        // turned off or the app got backgrounded - continue audio-only, disabling video
+        // track selection instead (no point decoding frames nobody can see). Re-enabled in
+        // onStart() once this player is visible again.
+        setVideoTrackDisabled(true);
         playerView.setPlayer(null);
         if (controllerFuture != null) {
             MediaController.releaseFuture(controllerFuture);
         }
         mediaController = null;
         resolutionRequested = false;
+    }
+
+    /**
+     * Enables/disables video track selection on the shared player. This is a property of
+     * the player itself (not this particular controller), so it persists on the underlying
+     * ExoPlayer in {@link PlaybackService} across reconnects - disabling it just before this
+     * controller is released still leaves playback running audio-only in the background.
+     */
+    private void setVideoTrackDisabled(boolean disabled) {
+        if (mediaController == null) return;
+        TrackSelectionParameters params = mediaController.getTrackSelectionParameters()
+                .buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, disabled)
+                .build();
+        mediaController.setTrackSelectionParameters(params);
     }
 }

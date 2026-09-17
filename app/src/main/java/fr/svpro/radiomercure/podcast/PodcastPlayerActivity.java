@@ -7,7 +7,9 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
@@ -59,6 +61,7 @@ public class PodcastPlayerActivity extends AppCompatActivity {
         controllerFuture.addListener(() -> {
             try {
                 mediaController = controllerFuture.get();
+                setVideoTrackDisabled(false); // rendering video again now that we're visible
                 playerView.setPlayer(mediaController);
                 playEpisode();
             } catch (Exception ignored) {
@@ -89,13 +92,34 @@ public class PodcastPlayerActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (mediaController != null) {
-            mediaController.pause();
-        }
+        // Most episodes here are functionally an audio track with a static poster over it
+        // (per the person's own content), so there's no reason to pause just because the
+        // screen turned off or the app got backgrounded - same expectation as AntennaPod or
+        // NewPipe's background-audio behavior. Instead of pausing, the video track is
+        // explicitly disabled while not visible (no point decoding frames nobody can see -
+        // saves battery/bandwidth) and re-enabled in onStart() once the player is visible
+        // again. Playback itself never stops; only this Activity's local UI/session
+        // connection is detached, exactly like the live stream already does.
+        setVideoTrackDisabled(true);
         playerView.setPlayer(null);
         if (controllerFuture != null) {
             MediaController.releaseFuture(controllerFuture);
         }
         mediaController = null;
+    }
+
+    /**
+     * Enables/disables video track selection on the shared player. This is a property of
+     * the player itself (not this particular controller), so it persists on the underlying
+     * ExoPlayer in {@link PlaybackService} across reconnects - disabling it just before this
+     * controller is released still leaves playback running audio-only in the background.
+     */
+    private void setVideoTrackDisabled(boolean disabled) {
+        if (mediaController == null) return;
+        TrackSelectionParameters params = mediaController.getTrackSelectionParameters()
+                .buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, disabled)
+                .build();
+        mediaController.setTrackSelectionParameters(params);
     }
 }
