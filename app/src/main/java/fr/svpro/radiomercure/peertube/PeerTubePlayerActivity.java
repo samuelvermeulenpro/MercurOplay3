@@ -1,6 +1,7 @@
 package fr.svpro.radiomercure.peertube;
 
 import android.content.ComponentName;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.widget.ImageButton;
@@ -11,6 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
@@ -127,9 +129,15 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
                 && resolvedPlaybackUri.equals(currentItem.localConfiguration.uri.toString());
 
         if (!alreadyPlayingThis) {
+            MediaMetadata metadata = new MediaMetadata.Builder()
+                    .setTitle(video.name)
+                    .setArtist(getString(R.string.app_name))
+                    .setArtworkUri(!video.thumbnailUrl.isEmpty() ? Uri.parse(video.thumbnailUrl) : null)
+                    .build();
             MediaItem mediaItem = new MediaItem.Builder()
                     .setUri(resolvedPlaybackUri)
                     .setMediaId(resolvedPlaybackUri)
+                    .setMediaMetadata(metadata)
                     .build();
             mediaController.setMediaItem(mediaItem);
             mediaController.prepare();

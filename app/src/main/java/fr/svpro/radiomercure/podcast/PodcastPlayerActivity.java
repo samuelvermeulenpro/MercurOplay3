@@ -1,6 +1,7 @@
 package fr.svpro.radiomercure.podcast;
 
 import android.content.ComponentName;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -9,6 +10,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
@@ -79,9 +81,15 @@ public class PodcastPlayerActivity extends AppCompatActivity {
                 && episode.mediaUrl.equals(currentItem.localConfiguration.uri.toString());
 
         if (!alreadyPlayingThis) {
+            MediaMetadata metadata = new MediaMetadata.Builder()
+                    .setTitle(episode.title)
+                    .setArtist(getString(R.string.app_name))
+                    .setArtworkUri(!episode.thumbnailUrl.isEmpty() ? Uri.parse(episode.thumbnailUrl) : null)
+                    .build();
             MediaItem mediaItem = new MediaItem.Builder()
                     .setUri(episode.mediaUrl)
                     .setMediaId(episode.mediaUrl)
+                    .setMediaMetadata(metadata)
                     .build();
             mediaController.setMediaItem(mediaItem);
             mediaController.prepare();
