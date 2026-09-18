@@ -10,11 +10,22 @@ import java.util.List;
 /**
  * Parses MRSS / standard RSS video-podcast feeds. Handles the common
  * variations seen in the wild:
- *  - <media:content url="..." type="..." duration="..."/> (optionally
- *    wrapped in <media:group>, picking the highest quality entry present)
- *  - Plain RSS <enclosure url="..." type="..."/>
- *  - <media:thumbnail url="..."/> or <itunes:image href="..."/>
- *  - <itunes:duration> in HH:MM:SS, MM:SS or seconds form
+ *  - <media:content url="..." type="..." duration="..." isDefault="..."/>
+ *    (optionally wrapped in <media:group>) - preferred source for playback,
+ *    see the note on <enclosure> below for why.
+ *  - Plain RSS <enclosure url="..." type="..."/> - used only as a last
+ *    resort fallback when no <media:content> is present at all. On this
+ *    feed (PeerTube-generated), <enclosure> points at a "generate download"
+ *    endpoint that dynamically muxes files on demand and commonly doesn't
+ *    send a Content-Length header, which leaves ExoPlayer unable to
+ *    determine duration or seek at all. The <media:content> entries point
+ *    at PeerTube's actual static files instead, which are served with
+ *    proper Content-Length/Accept-Ranges - confirmed by inspecting the
+ *    response headers of one directly.
+ *  - <media:thumbnail url="...">/ <itunes:image href="...">
+ *  - <itunes:duration> in HH:MM:SS, MM:SS or seconds form, or the
+ *    <media:content duration="..."> attribute (seconds) - whichever is
+ *    found first for a given item.
  *
  * Namespace prefixes are read literally (non namespace-aware parsing) since
  * feeds in the wild are inconsistent about declaring/using them consistently.
@@ -31,9 +42,15 @@ public class MrssFeedParser {
 
         Episode current = null;
         String currentTag = null;
+
+        // Best <media:content> candidate seen so far for the current item, and its
+        // fallback <enclosure> (used only if no media:content is present at all).
         String bestMediaUrl = null;
         String bestMediaType = null;
-        long bestBitrate = -1;
+        boolean bestMediaIsDefault = false;
+        long bestMediaBitrate = -1;
+        String enclosureUrl = null;
+        String enclosureType = null;
 
         int eventType = parser.getEventType();
         while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -45,26 +62,38 @@ public class MrssFeedParser {
                     current = new Episode();
                     bestMediaUrl = null;
                     bestMediaType = null;
-                    bestBitrate = -1;
+                    bestMediaIsDefault = false;
+                    bestMediaBitrate = -1;
+                    enclosureUrl = null;
+                    enclosureType = null;
                 } else if (current != null && equalsLocal(name, "enclosure")) {
                     String url = attr(parser, "url");
                     String type = attr(parser, "type");
-                    if (url != null && current.mediaUrl.isEmpty()) {
-                        current.mediaUrl = url;
-                        current.mediaType = type != null ? type : "";
+                    if (url != null && enclosureUrl == null) {
+                        enclosureUrl = url;
+                        enclosureType = type != null ? type : "";
                     }
                 } else if (current != null && (equalsLocal(name, "content") || name.endsWith(":content"))) {
-                    // media:content (possibly repeated inside media:group)
+                    // media:content (possibly repeated inside media:group) - the preferred
+                    // playable source. Pick the entry marked isDefault="true" if present
+                    // (PeerTube's own hint for which rendition to use); otherwise fall back
+                    // to comparing bitrate, when given.
                     String url = attr(parser, "url");
                     String type = attr(parser, "type");
                     String bitrateStr = attr(parser, "bitrate");
                     String durationStr = attr(parser, "duration");
+                    boolean isDefault = "true".equalsIgnoreCase(attr(parser, "isDefault"));
                     long bitrate = parseLongSafe(bitrateStr, -1);
 
-                    if (url != null && bitrate > bestBitrate) {
-                        bestBitrate = bitrate;
+                    boolean better = bestMediaUrl == null
+                            || (isDefault && !bestMediaIsDefault)
+                            || (isDefault == bestMediaIsDefault && bitrate > bestMediaBitrate);
+
+                    if (url != null && better) {
                         bestMediaUrl = url;
                         bestMediaType = type;
+                        bestMediaIsDefault = isDefault;
+                        bestMediaBitrate = bitrate;
                     }
                     if (durationStr != null && current.durationSeconds < 0) {
                         current.durationSeconds = parseLongSafe(durationStr, -1);
@@ -107,9 +136,12 @@ public class MrssFeedParser {
             } else if (eventType == XmlPullParser.END_TAG) {
                 String name = parser.getName();
                 if (equalsLocal(name, "item") && current != null) {
-                    if (current.mediaUrl.isEmpty() && bestMediaUrl != null) {
+                    if (bestMediaUrl != null) {
                         current.mediaUrl = bestMediaUrl;
                         current.mediaType = bestMediaType != null ? bestMediaType : "";
+                    } else if (enclosureUrl != null) {
+                        current.mediaUrl = enclosureUrl;
+                        current.mediaType = enclosureType != null ? enclosureType : "";
                     }
                     if (!current.mediaUrl.isEmpty()) {
                         episodes.add(current);

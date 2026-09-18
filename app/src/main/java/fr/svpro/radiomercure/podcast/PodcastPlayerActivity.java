@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
+import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
@@ -21,6 +22,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import fr.svpro.radiomercure.R;
+import fr.svpro.radiomercure.playback.DurationOverridePlayer;
 import fr.svpro.radiomercure.playback.PlaybackService;
 import fr.svpro.radiomercure.util.PlaybackPositionStore;
 
@@ -65,7 +67,18 @@ public class PodcastPlayerActivity extends AppCompatActivity {
             try {
                 mediaController = controllerFuture.get();
                 setVideoTrackDisabled(false); // rendering video again now that we're visible
-                playerView.setPlayer(mediaController);
+
+                // If ExoPlayer can't determine the real duration itself (common for MP3s
+                // served without a Content-Length or Xing/VBRI header), fall back to what
+                // the RSS feed declared so the seek bar isn't stuck blank at 00:00.
+                long feedDurationMs = (episode != null && episode.durationSeconds > 0)
+                        ? episode.durationSeconds * 1000L
+                        : 0L;
+                Player playerForView = feedDurationMs > 0
+                        ? new DurationOverridePlayer(mediaController, feedDurationMs)
+                        : mediaController;
+                playerView.setPlayer(playerForView);
+
                 playEpisode();
             } catch (Exception ignored) {
                 // Playback controls simply won't be available; nothing else to recover here.

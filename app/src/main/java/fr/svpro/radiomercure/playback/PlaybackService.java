@@ -15,6 +15,9 @@ import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DataSourceBitmapLoader;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.extractor.DefaultExtractorsFactory;
+import androidx.media3.extractor.mp3.Mp3Extractor;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 import androidx.media3.session.SessionCommand;
@@ -25,6 +28,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import fr.svpro.radiomercure.MainActivity;
+import fr.svpro.radiomercure.util.Config;
 import fr.svpro.radiomercure.util.PlaybackPositionStore;
 
 /**
@@ -64,7 +68,21 @@ public class PlaybackService extends MediaSessionService {
     public void onCreate() {
         super.onCreate();
 
-        ExoPlayer player = new ExoPlayer.Builder(this).build();
+        // Some podcast hosts serve MP3s without a Xing/VBRI header (the metadata ExoPlayer
+        // normally uses to know the exact duration and seek table). Without it, and without
+        // this flag, ExoPlayer can't determine a duration at all - the UI shows 00:00 total
+        // and there's no working seek bar. This tells the MP3 extractor to estimate a seek
+        // table from the file's (constant) bitrate instead, using the response's
+        // Content-Length - covering the common case where podcast audio is constant-bitrate
+        // encoded but just lacks the optional VBR header. (PeerTube's files aren't affected
+        // by this at all - that's a different container/pipeline entirely.)
+        DefaultExtractorsFactory extractorsFactory = new DefaultExtractorsFactory()
+                .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING
+                        | Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING);
+
+        ExoPlayer player = new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(this, extractorsFactory))
+                .build();
 
         Intent sessionIntent = new Intent(this, MainActivity.class);
         PendingIntent sessionActivityPendingIntent = PendingIntent.getActivity(
@@ -117,17 +135,27 @@ public class PlaybackService extends MediaSessionService {
     }
 
     /**
-     * Saves the current position of whatever's loaded, unless it's the live stream
-     * ({@link Player#isCurrentMediaItemLive()} - bookmarking a live radio position makes no
-     * sense) or nothing is actively playing right now.
+     * Saves the current position of whatever's loaded, unless it's the live stream or
+     * nothing is actively playing right now.
+     *
+     * <p>Deliberately checks the actual URI against {@link Config#LIVE_STREAM_URL} rather
+     * than {@link Player#isCurrentMediaItemLive()}: that flag is ExoPlayer's own heuristic
+     * and can be true for on-demand podcast content too, specifically when its duration
+     * can't be determined (e.g. an MP3 with no Xing/VBRI header and no usable
+     * Content-Length) - which would otherwise silently skip saving a real, resumable
+     * position for those episodes.
      */
     private void savePositionIfApplicable() {
         if (mediaSession == null) return;
         Player player = mediaSession.getPlayer();
-        if (!player.isPlaying() || player.isCurrentMediaItemLive()) return;
+        if (!player.isPlaying()) return;
 
         MediaItem currentItem = player.getCurrentMediaItem();
         if (currentItem == null || currentItem.mediaId == null || currentItem.mediaId.isEmpty()) return;
+        if (currentItem.localConfiguration != null
+                && Config.LIVE_STREAM_URL.equals(currentItem.localConfiguration.uri.toString())) {
+            return;
+        }
 
         PlaybackPositionStore.savePosition(
                 this, currentItem.mediaId, player.getCurrentPosition(), player.getDuration());
