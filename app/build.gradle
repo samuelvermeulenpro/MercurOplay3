@@ -10,8 +10,8 @@ android {
         applicationId "fr.svpro.radiomercure"
         minSdk 24
         targetSdk 37
-        versionCode 3150
-        versionName "3.1.5"
+        versionCode 3160
+        versionName "3.1.6"
     }
 
     buildTypes {
