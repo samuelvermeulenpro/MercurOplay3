@@ -16,8 +16,8 @@
 
     <ImageButton
         android:id="@+id/buttonBack"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/action_back"
@@ -52,9 +52,9 @@
 
     <ImageButton
         android:id="@+id/buttonSort"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginEnd="62dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="70dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/cd_sort_channels"
         android:padding="8dp"
