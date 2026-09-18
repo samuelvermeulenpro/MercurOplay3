@@ -4,6 +4,8 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,13 +19,13 @@ import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 import androidx.media3.session.SessionCommand;
 import androidx.media3.session.SessionCommands;
-import androidx.media3.session.SessionError;
 import androidx.media3.session.SessionResult;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import fr.svpro.radiomercure.MainActivity;
+import fr.svpro.radiomercure.util.PlaybackPositionStore;
 
 /**
  * Background playback service shared by both the live radio stream and podcast/video
@@ -37,6 +39,14 @@ import fr.svpro.radiomercure.MainActivity;
  * through a {@code MediaController} (i.e. from the fragment) is a known source of stuck
  * metadata (see androidx/media issue #706) - that was the root cause of the "now playing"
  * display freezing after the first artwork update.
+ * <p>Also periodically saves the playback position of whatever podcast episode/PeerTube
+ * video is currently loaded (never the live stream) via {@link PlaybackPositionStore}, so
+ * it can resume where it left off later - see {@link #savePositionIfApplicable()}. This
+ * lives here rather than in the player Activities specifically so it keeps working while
+ * backgrounded: those Activities detach their local session connection in onStop() (to
+ * support audio-only background playback), so periodic saving tied to their lifecycle
+ * would stop tracking the moment the screen turns off, which is exactly when background
+ * listening matters most.
  */
 @UnstableApi
 public class PlaybackService extends MediaSessionService {
@@ -44,7 +54,11 @@ public class PlaybackService extends MediaSessionService {
     public static final String COMMAND_SET_ARTWORK = "fr.svpro.radiomercure.SET_ARTWORK";
     public static final String EXTRA_ARTWORK_URL = "artwork_url";
 
+    private static final long POSITION_SAVE_INTERVAL_MS = 5_000L;
+
     private MediaSession mediaSession;
+    private final Handler positionSaveHandler = new Handler(Looper.getMainLooper());
+    private final Runnable positionSaveTick = this::savePositionTickAndReschedule;
 
     @Override
     public void onCreate() {
@@ -62,6 +76,21 @@ public class PlaybackService extends MediaSessionService {
                 .setBitmapLoader(new DataSourceBitmapLoader(this))
                 .setCallback(new ArtworkSessionCallback())
                 .build();
+
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                if (playbackState != Player.STATE_ENDED) return;
+                // Finished naturally: clear any saved position rather than leaving one
+                // pointing at (or near) the very end of the episode/video.
+                MediaItem item = player.getCurrentMediaItem();
+                if (item != null && item.mediaId != null && !item.mediaId.isEmpty()) {
+                    PlaybackPositionStore.clearPosition(PlaybackService.this, item.mediaId);
+                }
+            }
+        });
+
+        positionSaveHandler.postDelayed(positionSaveTick, POSITION_SAVE_INTERVAL_MS);
     }
 
     @Nullable
@@ -72,12 +101,36 @@ public class PlaybackService extends MediaSessionService {
 
     @Override
     public void onDestroy() {
+        positionSaveHandler.removeCallbacks(positionSaveTick);
+        savePositionIfApplicable(); // final flush so the last few seconds aren't lost
         if (mediaSession != null) {
             mediaSession.getPlayer().release();
             mediaSession.release();
             mediaSession = null;
         }
         super.onDestroy();
+    }
+
+    private void savePositionTickAndReschedule() {
+        savePositionIfApplicable();
+        positionSaveHandler.postDelayed(positionSaveTick, POSITION_SAVE_INTERVAL_MS);
+    }
+
+    /**
+     * Saves the current position of whatever's loaded, unless it's the live stream
+     * ({@link Player#isCurrentMediaItemLive()} - bookmarking a live radio position makes no
+     * sense) or nothing is actively playing right now.
+     */
+    private void savePositionIfApplicable() {
+        if (mediaSession == null) return;
+        Player player = mediaSession.getPlayer();
+        if (!player.isPlaying() || player.isCurrentMediaItemLive()) return;
+
+        MediaItem currentItem = player.getCurrentMediaItem();
+        if (currentItem == null || currentItem.mediaId == null || currentItem.mediaId.isEmpty()) return;
+
+        PlaybackPositionStore.savePosition(
+                this, currentItem.mediaId, player.getCurrentPosition(), player.getDuration());
     }
 
     /**
@@ -109,7 +162,7 @@ public class PlaybackService extends MediaSessionService {
         @NonNull
         @Override
         public MediaSession.ConnectionResult onConnect(@NonNull MediaSession session,
-                                                         @NonNull MediaSession.ControllerInfo controller) {
+                                                       @NonNull MediaSession.ControllerInfo controller) {
             MediaSession.ConnectionResult defaultResult = MediaSession.Callback.super.onConnect(session, controller);
             SessionCommands sessionCommands = defaultResult.availableSessionCommands.buildUpon()
                     .add(new SessionCommand(COMMAND_SET_ARTWORK, Bundle.EMPTY))
@@ -120,14 +173,14 @@ public class PlaybackService extends MediaSessionService {
         @NonNull
         @Override
         public ListenableFuture<SessionResult> onCustomCommand(@NonNull MediaSession session,
-                                                                 @NonNull MediaSession.ControllerInfo controller,
-                                                                 @NonNull SessionCommand customCommand,
-                                                                 @NonNull Bundle args) {
+                                                               @NonNull MediaSession.ControllerInfo controller,
+                                                               @NonNull SessionCommand customCommand,
+                                                               @NonNull Bundle args) {
             if (COMMAND_SET_ARTWORK.equals(customCommand.customAction)) {
                 applyArtwork(args.getString(EXTRA_ARTWORK_URL));
                 return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_SUCCESS));
             }
-            return Futures.immediateFuture(new SessionResult(SessionError.ERROR_NOT_SUPPORTED));
+            return Futures.immediateFuture(new SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED));
         }
     }
 }

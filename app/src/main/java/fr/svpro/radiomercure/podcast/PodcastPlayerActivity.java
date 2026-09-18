@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import fr.svpro.radiomercure.R;
 import fr.svpro.radiomercure.playback.PlaybackService;
+import fr.svpro.radiomercure.util.PlaybackPositionStore;
 
 @UnstableApi
 public class PodcastPlayerActivity extends AppCompatActivity {
@@ -93,6 +94,12 @@ public class PodcastPlayerActivity extends AppCompatActivity {
                     .build();
             mediaController.setMediaItem(mediaItem);
             mediaController.prepare();
+
+            long savedPosition = PlaybackPositionStore.getSavedPosition(this, episode.mediaUrl);
+            if (savedPosition > 0) {
+                mediaController.seekTo(savedPosition);
+            }
+
             mediaController.play();
         }
     }

@@ -29,6 +29,7 @@ import java.util.Locale;
 
 import fr.svpro.radiomercure.R;
 import fr.svpro.radiomercure.playback.PlaybackService;
+import fr.svpro.radiomercure.util.PlaybackPositionStore;
 
 /**
  * PeerTube video player activity: resolves the best playback source (HLS master
@@ -136,11 +137,17 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
                     .build();
             MediaItem mediaItem = new MediaItem.Builder()
                     .setUri(resolvedPlaybackUri)
-                    .setMediaId(resolvedPlaybackUri)
+                    .setMediaId(video.id) // stable id, unlike the resolved URL - used as the resume-position key
                     .setMediaMetadata(metadata)
                     .build();
             mediaController.setMediaItem(mediaItem);
             mediaController.prepare();
+
+            long savedPosition = PlaybackPositionStore.getSavedPosition(this, video.id);
+            if (savedPosition > 0) {
+                mediaController.seekTo(savedPosition);
+            }
+
             mediaController.play();
         }
     }
