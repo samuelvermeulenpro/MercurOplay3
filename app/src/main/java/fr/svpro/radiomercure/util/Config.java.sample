@@ -28,7 +28,7 @@ public final class Config {
     // public share link (…/apps/calendar/p/TOKEN, simplest - no credentials needed), a
     // webcal:// link, or the private CalDAV URL (…/remote.php/dav/calendars/USER/rivendell)
     // with a Nextcloud app password. Empty URL: the tab says the grid isn't configured.
-    public static final String GRILLE_CALENDAR_URL = "";
+    public static final String GRILLE_CALENDAR_URL = "https://nuage.radiomercure.net/apps/calendar/p/cKqgqtiPFWGXZznB";
     public static final String GRILLE_CALENDAR_USER = "";
     public static final String GRILLE_CALENDAR_PASSWORD = "";
 

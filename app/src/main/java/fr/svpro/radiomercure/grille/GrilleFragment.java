@@ -47,9 +47,9 @@ public class GrilleFragment extends Fragment {
     private static final String STATE_DAY = "selected_day";
     private static final DateTimeFormatter TAB_DATE = DateTimeFormatter.ofPattern("d/MM", Locale.FRANCE);
     private static final DateTimeFormatter TAB_DAY = DateTimeFormatter.ofPattern("EEEE", Locale.FRANCE);
-    /** PeerTube channel page (…/c/NAME or …/video-channels/NAME): opened in the app's own tab. */
+    /** PeerTube channel page (…/c/NAME, …/video-channels/NAME or …/@NAME): opened in the app's own tab. */
     private static final Pattern CHANNEL_URL = Pattern.compile(
-            "(?i)^https?://[^/]*oplay[^/]*/(?:c|video-channels)/([^/?#]+)");
+            "(?i)^https?://[^/]*oplay[^/]*/(?:c/|video-channels/|@)([^/?#]+)");
 
     private TabLayout tabDays;
     private SwipeRefreshLayout swipeRefresh;
