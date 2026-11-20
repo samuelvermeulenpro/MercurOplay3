@@ -34,7 +34,7 @@ import okhttp3.OkHttpClient;
 
 /**
  * Live radio tab. Note this shares a single {@link PlaybackService}/ExoPlayer instance with
- * the podcast and PeerTube players, so nearly everything here has to explicitly check
+ * the PeerTube player, so nearly everything here has to explicitly check
  * {@link #isCurrentItemLiveStream()} rather than assuming "the player" always means "the
  * live stream" - see individual method comments for why.
  */
@@ -115,7 +115,7 @@ public class LiveFragment extends Fragment {
      * playback has been requested, and if artwork lookup comes back empty.
      *
      * <p>Also clears {@link #lastArtworkQueryKey}: without this, switching away from the
-     * live stream (podcast/PeerTube video) and back to it while it's still on the very same
+     * live stream (PeerTube video) and back to it while it's still on the very same
      * track it was on before would never re-fetch the cover, since the dedup key would still
      * match and the fetch would be skipped - even though the ImageView itself had been reset
      * to the placeholder in the meantime. The cover would then stay stuck on the placeholder
@@ -130,7 +130,7 @@ public class LiveFragment extends Fragment {
 
     /**
      * True only if the shared player's *currently loaded* item is the live stream - as
-     * opposed to a podcast episode or PeerTube video that happens to be loaded on the same
+     * opposed to a PeerTube video that happens to be loaded on the same
      * player. Every piece of UI/state logic below that would otherwise assume "the player"
      * always means "the live stream" goes through this check.
      */
@@ -143,7 +143,7 @@ public class LiveFragment extends Fragment {
 
     private void togglePlayback() {
         // Only treat this as "pause" if the live stream is specifically what's currently
-        // playing. Otherwise (nothing loaded, or a podcast/PeerTube video is loaded instead)
+        // playing. Otherwise (nothing loaded, or a PeerTube video is loaded instead)
         // a tap always means "switch the shared player over to the live stream and play it" -
         // never "pause whatever else happens to be playing".
         if (mediaController != null && isCurrentItemLiveStream() && mediaController.isPlaying()) {
@@ -164,7 +164,7 @@ public class LiveFragment extends Fragment {
      *   is nothing to make {@code Player.Listener} fire again for a state that isn't
      *   changing.</li>
      *   <li>{@code startPlayback=true} (an explicit play tap): switches the shared player
-     *   over to the live stream if it's currently showing something else (podcast/PeerTube
+     *   over to the live stream if it's currently showing something else (PeerTube
      *   video), then plays/resumes it. Always calls {@link #prepareLiveStreamIfNeeded()}
      *   regardless of the player's current state - gating that behind "only if idle" was the
      *   bug that let tapping play here silently resume whatever else was last playing
@@ -247,7 +247,7 @@ public class LiveFragment extends Fragment {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
                 if (!isCurrentItemLiveStream()) {
-                    // The shared player just switched to (or already had) a podcast/PeerTube
+                    // The shared player just switched to (or already had) a PeerTube
                     // video loaded - this state change isn't about the live stream at all.
                     showNeutralLiveTabState();
                     return;
@@ -265,7 +265,7 @@ public class LiveFragment extends Fragment {
             @Override
             public void onPlayerError(@NonNull PlaybackException error) {
                 // Only surface this as a live-stream error if the live stream was actually
-                // what errored - an error from the podcast/PeerTube player isn't ours to show.
+                // what errored - an error from the PeerTube player isn't ours to show.
                 if (isCurrentItemLiveStream()) {
                     showError();
                 }
@@ -274,7 +274,7 @@ public class LiveFragment extends Fragment {
             @Override
             public void onMediaMetadataChanged(@NonNull MediaMetadata mediaMetadata) {
                 if (!isCurrentItemLiveStream()) {
-                    // The shared player switched to other content (e.g. a podcast was
+                    // The shared player switched to other content (e.g. a video was
                     // started from another tab while this one stayed alive in the
                     // background) - fall back to the neutral state instead of showing or
                     // fetching artwork for content that isn't the live stream.
@@ -298,7 +298,7 @@ public class LiveFragment extends Fragment {
         if (mediaController == null) return;
 
         if (!isCurrentItemLiveStream()) {
-            // The shared player is currently busy with a podcast/PeerTube video, not the
+            // The shared player is currently busy with a PeerTube video, not the
             // live stream - show this tab's neutral state; a play tap will switch it over.
             showNeutralLiveTabState();
             return;

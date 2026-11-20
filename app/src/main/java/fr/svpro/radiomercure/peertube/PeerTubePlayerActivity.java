@@ -34,8 +34,8 @@ import fr.svpro.radiomercure.util.PlaybackPositionStore;
 /**
  * PeerTube video player activity: resolves the best playback source (HLS master
  * playlist if available, otherwise the highest-resolution progressive file) before
- * playing via the shared PlaybackService - mirrors PodcastPlayerActivity, except the
- * playable URI isn't known upfront and must be resolved from the video's details.
+ * playing via the shared PlaybackService. The playable URI isn't known upfront and
+ * must be resolved from the video's details.
  */
 @UnstableApi
 public class PeerTubePlayerActivity extends AppCompatActivity {
@@ -54,7 +54,7 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_podcast_player);
+        setContentView(R.layout.activity_peertube_player);
 
         video = (PtVideo) getIntent().getSerializableExtra(EXTRA_VIDEO);
         apiClient = PeerTubeApiClient.getInstance(this);
@@ -92,8 +92,7 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * Unlike podcast episodes (whose direct media URL is already known from the RSS
-     * feed), a PeerTube video's playable source (HLS playlist or progressive file) is
+     * A PeerTube video's playable source (HLS playlist or progressive file) is
      * only known after fetching its full details - resolved once per activity instance.
      */
     private void resolveAndPlay() {
@@ -166,8 +165,8 @@ public class PeerTubePlayerActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        // Same reasoning as PodcastPlayerActivity: don't pause just because the screen
-        // turned off or the app got backgrounded - continue audio-only, disabling video
+        // Don't pause just because the screen turned off or the app got
+        // backgrounded - continue audio-only, disabling video
         // track selection instead (no point decoding frames nobody can see). Re-enabled in
         // onStart() once this player is visible again.
         setVideoTrackDisabled(true);

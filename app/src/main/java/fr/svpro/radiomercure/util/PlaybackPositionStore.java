@@ -4,10 +4,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * Remembers the last playback position for a given episode/video (keyed by its stable
+ * Remembers the last playback position for a given video (keyed by its stable
  * media URL or id) so playback can resume where it left off later, matching the behavior
- * of podcast apps like AntennaPod. Shared between the podcast and PeerTube players since
- * they need the exact same logic.
+ * of podcast apps like AntennaPod.
  *
  * <p>Positions under {@link #RESUME_THRESHOLD_MS} aren't worth resuming (barely started),
  * and positions within {@link #END_THRESHOLD_MS} of the known duration are treated as

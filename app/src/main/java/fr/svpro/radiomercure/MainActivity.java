@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * A deliberate hard exit: unlike pressing Home (which should keep the live stream/
-     * podcast/PeerTube video playing in the background, by design), this explicitly stops
+     * PeerTube video playing in the background, by design), this explicitly stops
      * the shared {@link PlaybackService} - releasing the player/session and dismissing the
      * notification - before closing every Activity in the app's task.
      */

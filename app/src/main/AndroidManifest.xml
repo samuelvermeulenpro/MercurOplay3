@@ -48,13 +48,6 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".podcast.PodcastPlayerActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:screenOrientation="unspecified"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
-
-        <activity
             android:name=".peertube.PeerTubePlayerActivity"
             android:exported="false"
             android:launchMode="singleTop"

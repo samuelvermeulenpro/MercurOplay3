@@ -12,12 +12,6 @@
         tools:layout="@layout/fragment_live" />
 
     <fragment
-        android:id="@+id/podcastFragment"
-        android:name="fr.svpro.radiomercure.podcast.PodcastFragment"
-        android:label="@string/nav_podcast"
-        tools:layout="@layout/fragment_podcast" />
-
-    <fragment
         android:id="@+id/peertubeChannelsFragment"
         android:name="fr.svpro.radiomercure.peertube.PeerTubeChannelsFragment"
         android:label="@string/nav_channels"

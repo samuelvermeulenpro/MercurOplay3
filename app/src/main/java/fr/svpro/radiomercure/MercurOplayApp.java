@@ -27,7 +27,7 @@ public class MercurOplayApp extends Application {
      * which includes this app's whole minSdk 24-28 range - any server requiring/preferring
      * TLS 1.3 (a fairly common modern reverse-proxy default, e.g. nginx/Caddy "modern" TLS
      * profiles) fails the handshake outright on those devices, for every HTTPS call in the
-     * app (PeerTube API, Icecast status, iTunes artwork, the podcast feed - not just one
+     * app (PeerTube API, Icecast status, iTunes artwork - not just one
      * endpoint). Installing Conscrypt as the top security provider gives OkHttp a TLS 1.3
      * capable engine on API 21+, independent of the platform's own TLS support.
      */

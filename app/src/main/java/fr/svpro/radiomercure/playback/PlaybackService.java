@@ -32,7 +32,7 @@ import fr.svpro.radiomercure.util.Config;
 import fr.svpro.radiomercure.util.PlaybackPositionStore;
 
 /**
- * Background playback service shared by both the live radio stream and podcast/video
+ * Background playback service shared by both the live radio stream and PeerTube video
  * playback. Keeps a single ExoPlayer + MediaSession alive so playback continues with
  * system notification controls when the app is backgrounded.
  *
@@ -43,7 +43,7 @@ import fr.svpro.radiomercure.util.PlaybackPositionStore;
  * through a {@code MediaController} (i.e. from the fragment) is a known source of stuck
  * metadata (see androidx/media issue #706) - that was the root cause of the "now playing"
  * display freezing after the first artwork update.
- * <p>Also periodically saves the playback position of whatever podcast episode/PeerTube
+ * <p>Also periodically saves the playback position of whatever PeerTube
  * video is currently loaded (never the live stream) via {@link PlaybackPositionStore}, so
  * it can resume where it left off later - see {@link #savePositionIfApplicable()}. This
  * lives here rather than in the player Activities specifically so it keeps working while
@@ -68,12 +68,12 @@ public class PlaybackService extends MediaSessionService {
     public void onCreate() {
         super.onCreate();
 
-        // Some podcast hosts serve MP3s without a Xing/VBRI header (the metadata ExoPlayer
+        // Some hosts serve MP3s without a Xing/VBRI header (the metadata ExoPlayer
         // normally uses to know the exact duration and seek table). Without it, and without
         // this flag, ExoPlayer can't determine a duration at all - the UI shows 00:00 total
         // and there's no working seek bar. This tells the MP3 extractor to estimate a seek
         // table from the file's (constant) bitrate instead, using the response's
-        // Content-Length - covering the common case where podcast audio is constant-bitrate
+        // Content-Length - covering the common case where audio is constant-bitrate
         // encoded but just lacks the optional VBR header. (PeerTube's files aren't affected
         // by this at all - that's a different container/pipeline entirely.)
         DefaultExtractorsFactory extractorsFactory = new DefaultExtractorsFactory()
@@ -100,7 +100,7 @@ public class PlaybackService extends MediaSessionService {
             public void onPlaybackStateChanged(int playbackState) {
                 if (playbackState != Player.STATE_ENDED) return;
                 // Finished naturally: clear any saved position rather than leaving one
-                // pointing at (or near) the very end of the episode/video.
+                // pointing at (or near) the very end of the video.
                 MediaItem item = player.getCurrentMediaItem();
                 if (item != null && item.mediaId != null && !item.mediaId.isEmpty()) {
                     PlaybackPositionStore.clearPosition(PlaybackService.this, item.mediaId);
@@ -140,10 +140,10 @@ public class PlaybackService extends MediaSessionService {
      *
      * <p>Deliberately checks the actual URI against {@link Config#LIVE_STREAM_URL} rather
      * than {@link Player#isCurrentMediaItemLive()}: that flag is ExoPlayer's own heuristic
-     * and can be true for on-demand podcast content too, specifically when its duration
+     * and can be true for on-demand content too, specifically when its duration
      * can't be determined (e.g. an MP3 with no Xing/VBRI header and no usable
      * Content-Length) - which would otherwise silently skip saving a real, resumable
-     * position for those episodes.
+     * position for that content.
      */
     private void savePositionIfApplicable() {
         if (mediaSession == null) return;
