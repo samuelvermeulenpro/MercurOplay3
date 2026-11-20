@@ -41,8 +41,7 @@ import fr.svpro.radiomercure.R;
  *   }
  *
  *   onResume() {
- *       appUpdateHelper.checkForUpdate();       // starts the flow if an update just became available
- *       appUpdateHelper.resumeUpdateIfNeeded(); // catches a download that finished while backgrounded
+ *       appUpdateHelper.checkForUpdate(); // offers the update once, or the restart prompt once downloaded
  *   }
  *
  *   onDestroy() {
@@ -54,9 +53,19 @@ public class AppUpdateHelper {
 
     private static final String TAG = "AppUpdateHelper";
 
+    /**
+     * The update dialog is offered at most once per app launch. Play's dialog is its own
+     * Activity, so closing it (accept or decline) resumes ours again - and Play keeps
+     * reporting UPDATE_AVAILABLE while the download is pending, which used to re-open the
+     * dialog right after confirming. Static so a configuration change (new Activity
+     * instance) doesn't ask again either.
+     */
+    private static boolean updateFlowRequested = false;
+
     private final AppUpdateManager appUpdateManager;
     private final ActivityResultLauncher<IntentSenderRequest> updateLauncher;
     private final View snackbarAnchor;
+    private Snackbar restartSnackbar;
 
     private final InstallStateUpdatedListener installStateListener = state -> {
         if (state.installStatus() == InstallStatus.DOWNLOADED) {
@@ -73,36 +82,36 @@ public class AppUpdateHelper {
         this.appUpdateManager.registerListener(installStateListener);
     }
 
-    /** Checks Play for a newer version and silently starts the flexible download if one exists. */
+    /**
+     * Call on every onResume(). Shows the "restart to install" prompt if a flexible update
+     * finished downloading (the listener can miss it while backgrounded); otherwise offers
+     * the update once if Play reports one and no download is already under way.
+     */
     public void checkForUpdate() {
         appUpdateManager.getAppUpdateInfo()
-                .addOnSuccessListener(this::startFlexibleUpdateIfAvailable)
+                .addOnSuccessListener(info -> {
+                    if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                        promptRestart();
+                    } else {
+                        startFlexibleUpdateIfAvailable(info);
+                    }
+                })
                 .addOnFailureListener(e ->
                         Log.d(TAG, "App update check failed (not installed via Play, offline, etc.): " + e.getMessage()));
     }
 
-    /**
-     * Call on every onResume(): if a flexible update finished downloading while the app was
-     * backgrounded, the DOWNLOADED state can be missed by the listener above, so this
-     * re-checks explicitly and re-shows the "restart to install" prompt if needed.
-     */
-    public void resumeUpdateIfNeeded() {
-        appUpdateManager.getAppUpdateInfo().addOnSuccessListener(info -> {
-            if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                promptRestart();
-            } else if (info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                // A flow was already started earlier (e.g. app was killed mid-flow); resume it.
-                startFlexibleUpdateIfAvailable(info);
-            }
-        });
-    }
-
     private void startFlexibleUpdateIfAvailable(AppUpdateInfo info) {
-        boolean updateAvailable = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                || info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS;
-        if (!updateAvailable || !info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+        int status = info.installStatus();
+        boolean alreadyUnderWay = status == InstallStatus.PENDING
+                || status == InstallStatus.DOWNLOADING
+                || status == InstallStatus.INSTALLING;
+        if (updateFlowRequested
+                || alreadyUnderWay
+                || info.updateAvailability() != UpdateAvailability.UPDATE_AVAILABLE
+                || !info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
             return;
         }
+        updateFlowRequested = true;
         appUpdateManager.startUpdateFlowForResult(
                 info,
                 updateLauncher,
@@ -110,9 +119,11 @@ public class AppUpdateHelper {
     }
 
     private void promptRestart() {
-        Snackbar.make(snackbarAnchor, R.string.update_ready_message, Snackbar.LENGTH_INDEFINITE)
-                .setAction(R.string.update_restart_action, v -> appUpdateManager.completeUpdate())
-                .show();
+        // Both the listener and checkForUpdate() can report DOWNLOADED: show a single prompt.
+        if (restartSnackbar != null && restartSnackbar.isShownOrQueued()) return;
+        restartSnackbar = Snackbar.make(snackbarAnchor, R.string.update_ready_message, Snackbar.LENGTH_INDEFINITE)
+                .setAction(R.string.update_restart_action, v -> appUpdateManager.completeUpdate());
+        restartSnackbar.show();
     }
 
     /** Call from onDestroy() to avoid leaking the install-state listener. */

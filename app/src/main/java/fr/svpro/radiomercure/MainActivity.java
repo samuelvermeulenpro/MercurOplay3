@@ -106,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         appUpdateHelper.checkForUpdate();
-        appUpdateHelper.resumeUpdateIfNeeded();
     }
 
     @Override
