@@ -4,6 +4,7 @@
     <string name="exit_confirm_message">Appuyez à nouveau sur retour pour quitter</string>
 
     <string name="nav_live">Direct</string>
+    <string name="nav_grille">Grille</string>
     <string name="nav_channels">Les Émissions</string>
     <string name="nav_contact">Nous Contacter</string>
 
@@ -43,6 +44,18 @@
     <string name="about_developer_name">Samuel Vermeulen</string>
     <string name="about_developer_role">Consultant Informatique &amp; Internet</string>
     <string name="about_link_error">Impossible d\'ouvrir le lien.</string>
+
+    <string name="grille_title">Grille des programmes</string>
+    <string name="grille_today">Aujourd\'hui</string>
+    <string name="grille_tomorrow">Demain</string>
+    <string name="grille_time_range">%1$s – %2$s</string>
+    <string name="grille_continued">%1$s (suite)</string>
+    <string name="grille_empty_day">Programmation musicale en continu.</string>
+    <string name="grille_error">Impossible de charger la grille des programmes.</string>
+    <string name="grille_stale">Hors connexion : dernière grille enregistrée.</string>
+    <string name="grille_not_configured">La grille des programmes n\'est pas encore configurée.</string>
+    <string name="grille_link_oplay">Voir sur MercurOplay</string>
+    <string name="grille_link_page">Page de l\'émission</string>
 
     <string name="cd_sort_channels">Trier les chaînes</string>
     <string name="peertube_sort_alphabetical">Alphabétique (A→Z)</string>

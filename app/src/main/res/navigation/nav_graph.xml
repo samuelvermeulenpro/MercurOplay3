@@ -12,6 +12,16 @@
         tools:layout="@layout/fragment_live" />
 
     <fragment
+        android:id="@+id/grilleFragment"
+        android:name="fr.svpro.radiomercure.grille.GrilleFragment"
+        android:label="@string/nav_grille"
+        tools:layout="@layout/fragment_grille">
+        <action
+            android:id="@+id/action_grille_to_videos"
+            app:destination="@id/peertubeVideosFragment" />
+    </fragment>
+
+    <fragment
         android:id="@+id/peertubeChannelsFragment"
         android:name="fr.svpro.radiomercure.peertube.PeerTubeChannelsFragment"
         android:label="@string/nav_channels"

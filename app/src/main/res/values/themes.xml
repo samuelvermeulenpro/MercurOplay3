@@ -19,6 +19,12 @@
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
     </style>
 
+    <style name="TextAppearance.MercurOplay.DayTab" parent="TextAppearance.Design.Tab">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
     <style name="Widget.MercurOplay.BottomNav" parent="Widget.MaterialComponents.BottomNavigationView.Colored">
         <item name="android:background">@color/brand_blue</item>
         <item name="itemIconTint">@color/bottom_nav_item_color</item>

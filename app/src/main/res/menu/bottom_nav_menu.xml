@@ -5,6 +5,10 @@
         android:icon="@drawable/ic_live"
         android:title="@string/nav_live" />
     <item
+        android:id="@+id/grilleFragment"
+        android:icon="@drawable/ic_calendar"
+        android:title="@string/nav_grille" />
+    <item
         android:id="@+id/peertubeChannelsFragment"
         android:icon="@drawable/ic_video_library"
         android:title="@string/nav_channels" />

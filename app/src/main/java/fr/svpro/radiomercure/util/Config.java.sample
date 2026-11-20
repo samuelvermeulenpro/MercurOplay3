@@ -23,6 +23,15 @@ public final class Config {
 
     public static final long LISTENER_POLL_INTERVAL_MS = 15_000L;
 
+    // --- Grille des programmes (Nextcloud calendar "rivendell") ----------------------
+    // Same link as the website (WordPress › Personnaliser › Calendrier Nextcloud): the
+    // public share link (…/apps/calendar/p/TOKEN, simplest - no credentials needed), a
+    // webcal:// link, or the private CalDAV URL (…/remote.php/dav/calendars/USER/rivendell)
+    // with a Nextcloud app password. Empty URL: the tab says the grid isn't configured.
+    public static final String GRILLE_CALENDAR_URL = "";
+    public static final String GRILLE_CALENDAR_USER = "";
+    public static final String GRILLE_CALENDAR_PASSWORD = "";
+
     // --- PeerTube (oplay.radiomercure.fr) -------------------------------------------
     // NOTE: these are the initial seed values only - PeerTubeAuthStore persists the
     // live access/refresh tokens in SharedPreferences from here on, and
