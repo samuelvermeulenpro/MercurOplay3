@@ -1,5 +1,11 @@
 package fr.svpro.radiomercure.grille;
 
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.URLSpan;
+import android.text.util.Linkify;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,11 +34,13 @@ import fr.svpro.radiomercure.R;
 /**
  * One day of the schedule. Each slot shows its time range, title and host; tapping a slot
  * that has details (image, description or link) expands it, like the website's grid.
+ * Every link (the show's link, a replay button, links in the description) goes through
+ * the listener, so MercurOplay replays and channels can open in the app.
  */
 public class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.SlotViewHolder> {
 
     public interface OnLinkClickListener {
-        void onLinkClick(Occurrence occurrence);
+        void onLinkClick(Occurrence occurrence, String url);
     }
 
     private static final Locale FRENCH = Locale.FRANCE;
@@ -122,25 +130,51 @@ public class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.SlotViewHolder
 
         String when = capitalize(format(WHEN, o.start)) + " – " + format(HOUR, o.end);
         h.when.setText(o.host.isEmpty() ? when : when + " · " + o.host);
-        h.description.setText(description);
+        h.description.setText(linkify(o, description));
         h.description.setVisibility(description.isEmpty() ? View.GONE : View.VISIBLE);
+
+        // The first replay link of the description gets its own button, like the website's
+        // embedded player - unless the show's link already is that replay.
+        String replay = OplayLinks.firstReplay(description);
+        if (replay == null || replay.equals(o.link)) {
+            h.replay.setVisibility(View.GONE);
+        } else {
+            h.replay.setVisibility(View.VISIBLE);
+            h.replay.setOnClickListener(v -> listener.onLinkClick(o, replay));
+        }
 
         if (o.link.isEmpty()) {
             h.link.setVisibility(View.GONE);
         } else {
             h.link.setVisibility(View.VISIBLE);
-            h.link.setText(isOplay(o.link) ? R.string.grille_link_oplay : R.string.grille_link_page);
-            h.link.setOnClickListener(v -> listener.onLinkClick(o));
+            h.link.setText(OplayLinks.videoId(o.link) != null ? R.string.grille_replay
+                    : OplayLinks.isOplay(o.link) ? R.string.grille_link_oplay : R.string.grille_link_page);
+            h.link.setOnClickListener(v -> listener.onLinkClick(o, o.link));
         }
+    }
+
+    /** Description with its web links made clickable, routed through the listener. */
+    private CharSequence linkify(Occurrence o, String description) {
+        SpannableString text = new SpannableString(description);
+        Linkify.addLinks(text, Linkify.WEB_URLS);
+        for (URLSpan span : text.getSpans(0, text.length(), URLSpan.class)) {
+            int start = text.getSpanStart(span);
+            int end = text.getSpanEnd(span);
+            String url = span.getURL();
+            text.removeSpan(span);
+            text.setSpan(new ClickableSpan() {
+                @Override
+                public void onClick(@NonNull View widget) {
+                    listener.onLinkClick(o, url);
+                }
+            }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return text;
     }
 
     @Override
     public int getItemCount() {
         return slots.size();
-    }
-
-    static boolean isOplay(String url) {
-        return url.matches("(?i)^https?://[^/]*oplay[^/]*(/.*)?$");
     }
 
     private static String format(DateTimeFormatter f, long epochSec) {
@@ -163,6 +197,7 @@ public class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.SlotViewHolder
         final ImageView image;
         final TextView when;
         final TextView description;
+        final MaterialButton replay;
         final MaterialButton link;
 
         SlotViewHolder(@NonNull View v) {
@@ -178,7 +213,9 @@ public class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.SlotViewHolder
             image = v.findViewById(R.id.imageSlot);
             when = v.findViewById(R.id.textWhen);
             description = v.findViewById(R.id.textDescription);
+            replay = v.findViewById(R.id.buttonReplay);
             link = v.findViewById(R.id.buttonLink);
+            description.setMovementMethod(LinkMovementMethod.getInstance());
         }
     }
 }

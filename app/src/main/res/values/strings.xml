@@ -55,6 +55,7 @@
     <string name="grille_stale">Hors connexion : dernière grille enregistrée.</string>
     <string name="grille_not_configured">La grille des programmes n\'est pas encore configurée.</string>
     <string name="grille_link_oplay">Voir sur MercurOplay</string>
+    <string name="grille_replay">Écouter le replay</string>
     <string name="grille_link_page">Page de l\'émission</string>
 
     <string name="cd_sort_channels">Trier les chaînes</string>

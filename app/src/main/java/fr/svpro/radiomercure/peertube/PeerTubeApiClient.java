@@ -80,6 +80,11 @@ public class PeerTubeApiClient {
         void onError(String message);
     }
 
+    public interface VideoCallback {
+        void onSuccess(PtVideo video);
+        void onError(String message);
+    }
+
     public interface DownloadUrlCallback {
         void onSuccess(String downloadUrl, String suggestedFileName);
         void onError(String message);
@@ -170,6 +175,32 @@ public class PeerTubeApiClient {
                     }
                 }
                 mainHandler.post(() -> callback.onSuccess(videos));
+            }
+
+            @Override
+            public void onError(String message) {
+                mainHandler.post(() -> callback.onError(message));
+            }
+        });
+    }
+
+    /**
+     * Fetches a single video via GET /videos/{id}, where id may be the numeric id, the
+     * UUID or the shortUUID found in a /w/ page URL (e.g. a replay link in the programme
+     * grid) - giving a full {@link PtVideo}, with the numeric id the player relies on.
+     */
+    public void fetchVideo(String idOrUuid, VideoCallback callback) {
+        Log.d(TAG, "fetchVideo(" + idOrUuid + ") called");
+        getWithAuth(Config.PEERTUBE_API_BASE_URL + "/videos/" + idOrUuid, new RawResultHandler() {
+            @Override
+            public void onResponse(Response response) throws Exception {
+                Log.d(TAG, "fetchVideo(" + idOrUuid + ") -> HTTP " + response.code());
+                if (!response.isSuccessful() || response.body() == null) {
+                    mainHandler.post(() -> callback.onError("HTTP " + response.code()));
+                    return;
+                }
+                PtVideo video = parseVideo(new JSONObject(response.body().string()));
+                mainHandler.post(() -> callback.onSuccess(video));
             }
 
             @Override
@@ -457,6 +488,10 @@ public class PeerTubeApiClient {
         video.shortUUID = obj.optString("shortUUID", "");
         video.durationSeconds = obj.optLong("duration", -1);
         video.description = obj.optString("truncatedDescription", "");
+        if (video.description.isEmpty()) {
+            // Single-video details: full description instead of the truncated one.
+            video.description = obj.optString("description", "");
+        }
         video.publishedAt = obj.optString("publishedAt", "");
         video.thumbnailUrl = resolveImageUrl(obj.optJSONArray("thumbnails"));
 

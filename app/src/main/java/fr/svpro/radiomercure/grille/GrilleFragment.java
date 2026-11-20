@@ -31,10 +31,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import fr.svpro.radiomercure.R;
+import fr.svpro.radiomercure.peertube.PeerTubeApiClient;
+import fr.svpro.radiomercure.peertube.PeerTubePlayerActivity;
+import fr.svpro.radiomercure.peertube.PtVideo;
 
 /**
  * "Grille" tab: the programme schedule for the next 7 days, read from the Nextcloud
@@ -47,9 +48,6 @@ public class GrilleFragment extends Fragment {
     private static final String STATE_DAY = "selected_day";
     private static final DateTimeFormatter TAB_DATE = DateTimeFormatter.ofPattern("d/MM", Locale.FRANCE);
     private static final DateTimeFormatter TAB_DAY = DateTimeFormatter.ofPattern("EEEE", Locale.FRANCE);
-    /** PeerTube channel page (…/c/NAME, …/video-channels/NAME or …/@NAME): opened in the app's own tab. */
-    private static final Pattern CHANNEL_URL = Pattern.compile(
-            "(?i)^https?://[^/]*oplay[^/]*/(?:c/|video-channels/|@)([^/?#]+)");
 
     private TabLayout tabDays;
     private SwipeRefreshLayout swipeRefresh;
@@ -76,6 +74,7 @@ public class GrilleFragment extends Fragment {
     private LocalDate today;
     private int selectedDay;
     private boolean scrollToOnAir = true;
+    private boolean resolvingReplay;
 
     @Nullable
     @Override
@@ -232,18 +231,53 @@ public class GrilleFragment extends Fragment {
         layoutEmpty.setVisibility(View.VISIBLE);
     }
 
-    /** A MercurOplay channel opens in the "Émissions" tab; any other link in the browser. */
-    private void openLink(Occurrence o) {
-        Matcher m = CHANNEL_URL.matcher(o.link);
-        if (m.find()) {
+    /**
+     * A MercurOplay replay plays in the app's PeerTube player, a MercurOplay channel opens
+     * in the "Émissions" tab; any other link (or a replay the API won't give) in the browser.
+     */
+    private void openLink(Occurrence o, String url) {
+        String videoId = OplayLinks.videoId(url);
+        if (videoId != null) {
+            playReplay(videoId, url);
+            return;
+        }
+        String channel = OplayLinks.channelName(url);
+        if (channel != null) {
             Bundle args = new Bundle();
-            args.putString("channelName", Uri.decode(m.group(1)));
-            args.putString("channelDisplayName", o.title);
+            args.putString("channelName", channel);
+            args.putString("channelDisplayName", url.equals(o.link) ? o.title : channel);
             NavHostFragment.findNavController(this).navigate(R.id.action_grille_to_videos, args);
             return;
         }
+        openInBrowser(url);
+    }
+
+    private void playReplay(String videoId, String url) {
+        if (resolvingReplay) return;
+        resolvingReplay = true;
+        Toast.makeText(requireContext(), R.string.peertube_resolving_playback, Toast.LENGTH_SHORT).show();
+        PeerTubeApiClient.getInstance(requireContext()).fetchVideo(videoId, new PeerTubeApiClient.VideoCallback() {
+            @Override
+            public void onSuccess(PtVideo video) {
+                resolvingReplay = false;
+                if (!isAdded()) return;
+                Intent intent = new Intent(requireContext(), PeerTubePlayerActivity.class);
+                intent.putExtra(PeerTubePlayerActivity.EXTRA_VIDEO, video);
+                startActivity(intent);
+            }
+
+            @Override
+            public void onError(String message) {
+                resolvingReplay = false;
+                if (!isAdded()) return;
+                openInBrowser(url);
+            }
+        });
+    }
+
+    private void openInBrowser(String url) {
         try {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(o.link)));
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         } catch (ActivityNotFoundException e) {
             Toast.makeText(requireContext(), R.string.about_link_error, Toast.LENGTH_SHORT).show();
         }

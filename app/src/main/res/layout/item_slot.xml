@@ -130,12 +130,22 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:autoLink="web"
-                android:linksClickable="true"
                 android:textColor="@color/text_primary"
                 android:textColorLink="@color/brand_blue"
                 android:textSize="14sp"
                 tools:text="Description de l'émission" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonReplay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/grille_replay"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/brand_blue"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_play"
+                app:iconTint="@color/white" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonLink"
