@@ -15,9 +15,6 @@ import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DataSourceBitmapLoader;
 import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
-import androidx.media3.extractor.DefaultExtractorsFactory;
-import androidx.media3.extractor.mp3.Mp3Extractor;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 import androidx.media3.session.SessionCommand;
@@ -68,21 +65,7 @@ public class PlaybackService extends MediaSessionService {
     public void onCreate() {
         super.onCreate();
 
-        // Some hosts serve MP3s without a Xing/VBRI header (the metadata ExoPlayer
-        // normally uses to know the exact duration and seek table). Without it, and without
-        // this flag, ExoPlayer can't determine a duration at all - the UI shows 00:00 total
-        // and there's no working seek bar. This tells the MP3 extractor to estimate a seek
-        // table from the file's (constant) bitrate instead, using the response's
-        // Content-Length - covering the common case where audio is constant-bitrate
-        // encoded but just lacks the optional VBR header. (PeerTube's files aren't affected
-        // by this at all - that's a different container/pipeline entirely.)
-        DefaultExtractorsFactory extractorsFactory = new DefaultExtractorsFactory()
-                .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING
-                        | Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING);
-
-        ExoPlayer player = new ExoPlayer.Builder(this)
-                .setMediaSourceFactory(new DefaultMediaSourceFactory(this, extractorsFactory))
-                .build();
+        ExoPlayer player = new ExoPlayer.Builder(this).build();
 
         Intent sessionIntent = new Intent(this, MainActivity.class);
         PendingIntent sessionActivityPendingIntent = PendingIntent.getActivity(
