@@ -2,9 +2,29 @@ plugins {
     id 'com.android.application'
 }
 
+// Release signing (Play Store upload key): read from keystore.properties at the project
+// root - never committed, see keystore.properties.sample. Without it, release builds
+// fall back to the debug key (fine locally, rejected by the Play Store).
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
 android {
     namespace 'fr.svpro.radiomercure'
     compileSdk 37
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            release {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
 
     defaultConfig {
         applicationId "fr.svpro.radiomercure"
@@ -18,7 +38,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
         }
     }
 
