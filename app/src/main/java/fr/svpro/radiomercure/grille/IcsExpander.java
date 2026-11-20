@@ -25,8 +25,7 @@ public final class IcsExpander {
     /** "Animation : Prénom Nom" line in the description, as read by the website. */
     private static final Pattern HOST = Pattern.compile(
             "^\\s*(?:anim\\w*|pr[ée]sent\\w*)(?:\\s*·\\s*rice)?\\s*:\\s*(.+)$",
-            Pattern.MULTILINE | Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
-                    | Pattern.UNICODE_CHARACTER_CLASS);
+            Pattern.MULTILINE | Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private static final Pattern HREF = Pattern.compile("href=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
 
