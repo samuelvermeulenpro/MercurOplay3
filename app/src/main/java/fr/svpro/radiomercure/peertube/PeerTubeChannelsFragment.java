@@ -26,8 +26,11 @@ import fr.svpro.radiomercure.R;
 /** Top-level "Chaînes" tab: lists the PeerTube channels of the authenticated user. */
 public class PeerTubeChannelsFragment extends Fragment {
 
-    /** Default is alphabetical, per spec; the other two are by creation date. */
-    private enum SortOrder { ALPHABETICAL, NEWEST_FIRST, OLDEST_FIRST }
+    /**
+     * Default: channels with the most recent content first. The other options are
+     * alphabetical and by channel creation date.
+     */
+    private enum SortOrder { LATEST_CONTENT, ALPHABETICAL, NEWEST_FIRST, OLDEST_FIRST }
 
     private RecyclerView recyclerList;
     private SwipeRefreshLayout swipeRefresh;
@@ -43,7 +46,7 @@ public class PeerTubeChannelsFragment extends Fragment {
     // Holds the last successful fetch as returned by the server, so switching sort order
     // just re-sorts this in memory instead of re-fetching from the network.
     private final List<PtChannel> loadedChannels = new ArrayList<>();
-    private SortOrder sortOrder = SortOrder.ALPHABETICAL;
+    private SortOrder sortOrder = SortOrder.LATEST_CONTENT;
 
     @Nullable
     @Override
@@ -84,12 +87,15 @@ public class PeerTubeChannelsFragment extends Fragment {
 
     private void showSortMenu(View anchor) {
         PopupMenu popup = new PopupMenu(requireContext(), anchor);
-        popup.getMenu().add(0, 0, 0, R.string.peertube_sort_alphabetical);
-        popup.getMenu().add(0, 1, 1, R.string.peertube_sort_newest_first);
-        popup.getMenu().add(0, 2, 2, R.string.peertube_sort_oldest_first);
+        popup.getMenu().add(0, 3, 0, R.string.peertube_sort_latest_content);
+        popup.getMenu().add(0, 0, 1, R.string.peertube_sort_alphabetical);
+        popup.getMenu().add(0, 1, 2, R.string.peertube_sort_newest_first);
+        popup.getMenu().add(0, 2, 3, R.string.peertube_sort_oldest_first);
         popup.setOnMenuItemClickListener(item -> {
             SortOrder selected;
-            if (item.getItemId() == 1) {
+            if (item.getItemId() == 3) {
+                selected = SortOrder.LATEST_CONTENT;
+            } else if (item.getItemId() == 1) {
                 selected = SortOrder.NEWEST_FIRST;
             } else if (item.getItemId() == 2) {
                 selected = SortOrder.OLDEST_FIRST;
@@ -143,6 +149,14 @@ public class PeerTubeChannelsFragment extends Fragment {
     private void displaySortedChannels() {
         List<PtChannel> sorted = new ArrayList<>(loadedChannels);
         switch (sortOrder) {
+            case LATEST_CONTENT:
+                // Most recent video first (ISO UTC strings compare correctly); channels
+                // without any video go last, alphabetically.
+                sorted.sort((a, b) -> {
+                    int byDate = b.lastPublishedAt.compareTo(a.lastPublishedAt);
+                    return byDate != 0 ? byDate : displayNameOf(a).compareToIgnoreCase(displayNameOf(b));
+                });
+                break;
             case NEWEST_FIRST:
                 // ISO 8601 UTC timestamps sort correctly with plain string comparison.
                 sorted.sort((a, b) -> b.createdAt.compareTo(a.createdAt));

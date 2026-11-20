@@ -14,4 +14,8 @@ public class PtChannel implements Serializable {
     // Sorts correctly with plain string comparison since PeerTube always returns it
     // zero-padded and in UTC - no date parsing needed. Empty if missing/unparseable.
     public String createdAt = "";
+    // publishedAt (same ISO format) of the channel's most recent video, used for the
+    // default "latest content first" order. Empty if the channel has no video or the
+    // lookup failed.
+    public String lastPublishedAt = "";
 }

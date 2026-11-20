@@ -59,9 +59,10 @@
     <string name="grille_link_page">Page de l\'émission</string>
 
     <string name="cd_sort_channels">Trier les chaînes</string>
+    <string name="peertube_sort_latest_content">Contenu le plus récent</string>
     <string name="peertube_sort_alphabetical">Alphabétique (A→Z)</string>
-    <string name="peertube_sort_newest_first">Plus récent au moins récent</string>
-    <string name="peertube_sort_oldest_first">Moins récent au plus récent</string>
+    <string name="peertube_sort_newest_first">Création : plus récente d\'abord</string>
+    <string name="peertube_sort_oldest_first">Création : plus ancienne d\'abord</string>
     <string name="peertube_channels_title">Toutes les émissions</string>
     <string name="peertube_channels_loading">Chargement des émissions…</string>
     <string name="peertube_channels_empty">Aucune émission trouvée.</string>

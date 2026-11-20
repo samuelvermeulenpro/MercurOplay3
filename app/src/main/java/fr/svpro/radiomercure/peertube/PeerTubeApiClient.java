@@ -11,6 +11,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import fr.svpro.radiomercure.util.Config;
 import okhttp3.Call;
@@ -143,7 +145,7 @@ public class PeerTubeApiClient {
                         channels.add(parseChannel(channelsJson.getJSONObject(i)));
                     }
                 }
-                mainHandler.post(() -> callback.onSuccess(channels));
+                fillLastPublishedAt(channels, () -> mainHandler.post(() -> callback.onSuccess(channels)));
             }
 
             @Override
@@ -151,6 +153,46 @@ public class PeerTubeApiClient {
                 mainHandler.post(() -> callback.onError(message));
             }
         });
+    }
+
+    /**
+     * Sets {@link PtChannel#lastPublishedAt} on every channel - neither /users/me nor the
+     * channel objects expose it, so each channel's single most recent video is fetched
+     * (in parallel), then {@code done} runs once all lookups have finished. A failed
+     * lookup just leaves the date empty: the list still loads, that channel sorts last.
+     */
+    private void fillLastPublishedAt(List<PtChannel> channels, Runnable done) {
+        if (channels.isEmpty()) {
+            done.run();
+            return;
+        }
+        AtomicInteger remaining = new AtomicInteger(channels.size());
+        for (PtChannel channel : channels) {
+            AtomicBoolean counted = new AtomicBoolean(false); // onResponse may fail into onError
+            Runnable finished = () -> {
+                if (!counted.getAndSet(true) && remaining.decrementAndGet() == 0) done.run();
+            };
+            String url = Config.PEERTUBE_API_BASE_URL + "/video-channels/" + channel.name
+                    + "/videos?count=1&sort=-publishedAt";
+            getWithAuth(url, new RawResultHandler() {
+                @Override
+                public void onResponse(Response response) throws Exception {
+                    if (response.isSuccessful() && response.body() != null) {
+                        JSONArray data = new JSONObject(response.body().string()).optJSONArray("data");
+                        if (data != null && data.length() > 0) {
+                            channel.lastPublishedAt = data.getJSONObject(0).optString("publishedAt", "");
+                        }
+                    }
+                    finished.run();
+                }
+
+                @Override
+                public void onError(String message) {
+                    Log.d(TAG, "lastPublishedAt(" + channel.name + ") unavailable: " + message);
+                    finished.run();
+                }
+            });
+        }
     }
 
     /** Fetches the videos of a single channel via GET /video-channels/{name}/videos. */
