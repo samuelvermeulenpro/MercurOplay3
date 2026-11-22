@@ -12,46 +12,46 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace 'fr.svpro.radiomercure'
-    compileSdk 37
+    namespace = 'fr.svpro.radiomercure'
+    compileSdk = 37
 
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             release {
-                storeFile rootProject.file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
+                storeFile = rootProject.file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
             }
         }
     }
 
     defaultConfig {
-        applicationId "fr.svpro.radiomercure"
-        minSdk 24
-        targetSdk 37
-        versionCode 3210
-        versionName "3.2.1"
+        applicationId = "fr.svpro.radiomercure"
+        minSdk = 24
+        targetSdk = 37
+        versionCode = 3210
+        versionName = "3.2.1"
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         // java.time (programme grid) on API 24-25.
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
-        viewBinding true
-        buildConfig true
+        viewBinding = true
+        buildConfig = true
     }
 }
 
