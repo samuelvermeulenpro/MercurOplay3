@@ -122,9 +122,9 @@ public class SlotAdapter extends RecyclerView.Adapter<SlotAdapter.SlotViewHolder
 
         if (o.image.isEmpty()) {
             Glide.with(h.image.getContext()).clear(h.image);
-            h.image.setVisibility(View.GONE);
+            ((View) h.image.getParent()).setVisibility(View.GONE);
         } else {
-            h.image.setVisibility(View.VISIBLE);
+            ((View) h.image.getParent()).setVisibility(View.VISIBLE);
             Glide.with(h.image.getContext()).load(o.image).into(h.image);
         }
 

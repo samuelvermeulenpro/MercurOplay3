@@ -108,14 +108,24 @@
             android:visibility="gone"
             tools:visibility="visible">
 
-            <ImageView
-                android:id="@+id/imageSlot"
+            <!-- Square frame (max 280dp, centered), whole image shown: no cropping. -->
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:adjustViewBounds="true"
-                android:maxHeight="220dp"
-                android:scaleType="centerCrop" />
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:id="@+id/imageSlot"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:scaleType="fitCenter"
+                    app:layout_constraintDimensionRatio="1:1"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintWidth_max="280dp" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <TextView
                 android:id="@+id/textWhen"
