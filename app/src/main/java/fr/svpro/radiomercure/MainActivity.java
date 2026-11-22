@@ -66,7 +66,11 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (navController != null && navController.popBackStack()) {
+                // Only pop when there's somewhere to go back to: popBackStack() on the last
+                // entry (the start destination) would also pop it, leaving the NavController
+                // empty - the next bottom-nav tap then crashed in onNavDestinationSelected.
+                if (navController != null && navController.getPreviousBackStackEntry() != null
+                        && navController.popBackStack()) {
                     return;
                 }
                 long now = System.currentTimeMillis();
