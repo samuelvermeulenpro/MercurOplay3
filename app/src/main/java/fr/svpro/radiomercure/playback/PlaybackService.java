@@ -170,15 +170,23 @@ public class PlaybackService extends MediaSessionService {
 
     private class ArtworkSessionCallback implements MediaSession.Callback {
 
+        /**
+         * Every controller gets all default session/player commands (same as Media3's own
+         * default up to 1.10) plus the custom artwork command. Media3 1.11 deprecated the
+         * synchronous onConnect(): its default now returns an empty "not implemented"
+         * placeholder, so building on super.onConnect() left the app's own screens without
+         * play/pause - nothing would play at all.
+         */
         @NonNull
         @Override
-        public MediaSession.ConnectionResult onConnect(@NonNull MediaSession session,
-                                                       @NonNull MediaSession.ControllerInfo controller) {
-            MediaSession.ConnectionResult defaultResult = MediaSession.Callback.super.onConnect(session, controller);
-            SessionCommands sessionCommands = defaultResult.availableSessionCommands.buildUpon()
+        public ListenableFuture<MediaSession.ConnectionResult> onConnectAsync(
+                @NonNull MediaSession session, @NonNull MediaSession.ControllerInfo controller) {
+            SessionCommands sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                     .add(new SessionCommand(COMMAND_SET_ARTWORK, Bundle.EMPTY))
                     .build();
-            return MediaSession.ConnectionResult.accept(sessionCommands, defaultResult.availablePlayerCommands);
+            return Futures.immediateFuture(new MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                    .setAvailableSessionCommands(sessionCommands)
+                    .build());
         }
 
         @NonNull
